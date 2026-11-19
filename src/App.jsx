@@ -187,7 +187,8 @@ function LessonVisualAid({ topic, content }) {
 function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onMarkComplete, onCancel, onAskTutor, onClose }) {
   const [completionMode, setCompletionMode] = useState(null);
   const [understoodSections, setUnderstoodSections] = useState([]);
-  const [revealedChecks, setRevealedChecks] = useState([]);\n  const [challengeRevealed, setChallengeRevealed] = useState(false);
+  const [revealedChecks, setRevealedChecks] = useState([]);
+  const [challengeRevealed, setChallengeRevealed] = useState(false);
   const content = lesson?.content || {};
   const sections = content.sections || [];
   const lessonProgressPercent = sections.length ? Math.round((understoodSections.length / sections.length) * 100) : 0;
