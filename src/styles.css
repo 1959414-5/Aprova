@@ -2312,3 +2312,15 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 .lesson-flow-arrow { position:absolute; left:22px; bottom:-15px; z-index:2; color:var(--mint-deep); font-weight:900; }
 .lesson-example-flow-step:last-child .lesson-flow-arrow { display:none; }
 .lesson-example-visual .lesson-result { padding:12px; border-radius:12px; background:var(--success-bg); font-size:11px; line-height:1.7; margin-top:14px; }
+
+
+.lesson-visual-aid { margin:18px 0; padding:20px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(135deg,var(--surface-raised),var(--surface-2)); box-shadow:var(--shadow-out-sm); }
+.lesson-visual-aid h3 { margin:7px 0 15px; font-size:15px; }
+.lesson-visual-flow { display:grid; gap:8px; }
+.lesson-visual-node { position:relative; display:grid; grid-template-columns:minmax(105px,.34fr) 1fr; gap:12px; align-items:center; padding:12px 14px; border-radius:12px; background:var(--surface); border:1px solid var(--line); }
+.lesson-visual-node b { color:var(--mint-deep); font-size:10px; letter-spacing:.06em; }
+.lesson-visual-node span { font-size:12px; line-height:1.5; color:var(--text-soft); }
+.lesson-visual-node i { position:absolute; bottom:-13px; left:50%; z-index:1; color:var(--mint-deep); font-style:normal; font-weight:900; }
+.lesson-visual-node:last-child i { display:none; }
+.lesson-visual-aid > p { margin:13px 0 0; color:var(--muted); font-size:11px; line-height:1.6; }
+@media(max-width:600px){ .lesson-visual-aid {padding:15px;} .lesson-visual-node {grid-template-columns:1fr; gap:5px;} .lesson-visual-node i {left:14px;} }
