@@ -1693,6 +1693,8 @@ export default function App() {
                     <span className="plan-notification-state enabled">✓ Aviso do navegador ativado</span>
                   ) : goalNotificationPermission === "unsupported" ? (
                     <span className="plan-notification-state">Aviso dentro da plataforma</span>
+                  ) : goalNotificationPermission === "denied" ? (
+                    <span className="plan-notification-state blocked">Avisos bloqueados nas permissões do navegador</span>
                   ) : (
                     <button className="text-button plan-notification-button" type="button" onClick={enableGoalNotifications}>
                       Ativar aviso no navegador
