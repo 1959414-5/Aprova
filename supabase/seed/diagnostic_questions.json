@@ -1,0 +1,359 @@
+{
+  "note": "Questões autorais geradas para diagnóstico com base no Anexo III do Edital SBMG 001/2026. Não são questões oficiais da prova SBMG 2019.",
+  "exam_slug": "sbmg-2026-auxiliar-administrativo-financeiro",
+  "origin": "questao_autoral_ia",
+  "questions": [
+    {
+      "subject_slug": "lingua-portuguesa",
+      "topic_slug": "interpretacao-textos",
+      "statement": "Leia o trecho: “A organização dos documentos facilita a localização das informações, reduz retrabalho e permite acompanhar cada etapa de um processo.” A ideia central do trecho é que:",
+      "options": {
+        "A": "A organização documental serve apenas para arquivar papéis antigos.",
+        "B": "A organização documental melhora a eficiência e o acompanhamento dos processos.",
+        "C": "O controle de documentos elimina a necessidade de sistemas.",
+        "D": "A localização de informações depende exclusivamente da memória dos funcionários.",
+        "E": "O retrabalho é necessário para garantir a qualidade."
+      },
+      "correct_option": "B",
+      "explanation": "O trecho relaciona organização documental a localizar informações, reduzir retrabalho e acompanhar processos. A alternativa B resume a ideia central.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "lingua-portuguesa",
+      "topic_slug": "concordancia",
+      "statement": "Assinale a alternativa em que a concordância verbal está correta.",
+      "options": {
+        "A": "Houveram muitos pedidos de compra no mês.",
+        "B": "Fazem três meses que o relatório foi enviado.",
+        "C": "Existem documentos pendentes de conferência.",
+        "D": "Segue anexas as notas fiscais.",
+        "E": "A equipe de funcionários chegaram cedo."
+      },
+      "correct_option": "C",
+      "explanation": "O verbo existir concorda com o sujeito plural “documentos”. Haver no sentido de existir e fazer indicando tempo são impessoais e ficam no singular; equipe é núcleo singular.",
+      "difficulty": "medio",
+      "points": 1
+    },
+    {
+      "subject_slug": "lingua-portuguesa",
+      "topic_slug": "pontuacao",
+      "statement": "Assinale a frase corretamente pontuada.",
+      "options": {
+        "A": "Após a conferência dos documentos o setor, encaminhou o processo.",
+        "B": "Após a conferência, dos documentos o setor encaminhou o processo.",
+        "C": "Após a conferência dos documentos, o setor encaminhou o processo.",
+        "D": "Após, a conferência dos documentos o setor encaminhou o processo.",
+        "E": "Após a conferência dos documentos o setor, encaminhou o processo."
+      },
+      "correct_option": "C",
+      "explanation": "A expressão adverbial deslocada “Após a conferência dos documentos” está corretamente separada por vírgula. Não se deve separar sujeito e verbo por vírgula.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "matematica-raciocinio-logico",
+      "topic_slug": "porcentagem",
+      "statement": "Uma despesa mensal de R$ 2.500,00 sofreu um aumento de 12%. Qual é o valor do aumento?",
+      "options": {
+        "A": "R$ 120,00",
+        "B": "R$ 250,00",
+        "C": "R$ 280,00",
+        "D": "R$ 300,00",
+        "E": "R$ 320,00"
+      },
+      "correct_option": "D",
+      "explanation": "12% de 2.500 = 0,12 × 2.500 = R$ 300,00. O novo total seria R$ 2.800,00, mas a questão pede apenas o aumento.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "matematica-raciocinio-logico",
+      "topic_slug": "regra-de-tres",
+      "statement": "Cinco funcionários processam 150 registros em 3 dias, mantendo ritmo constante. Quantos registros 8 funcionários processam em 2 dias, no mesmo ritmo?",
+      "options": {
+        "A": "120",
+        "B": "150",
+        "C": "160",
+        "D": "180",
+        "E": "240"
+      },
+      "correct_option": "C",
+      "explanation": "A produtividade é 150 ÷ (5 × 3) = 10 registros por funcionário por dia. Assim, 8 × 2 × 10 = 160 registros.",
+      "difficulty": "medio",
+      "points": 1
+    },
+    {
+      "subject_slug": "matematica-raciocinio-logico",
+      "topic_slug": "estatistica-tabelas",
+      "statement": "As despesas de um setor em três meses foram R$ 1.200,00, R$ 1.500,00 e R$ 1.800,00. Qual foi a média mensal dessas despesas?",
+      "options": {
+        "A": "R$ 1.350,00",
+        "B": "R$ 1.450,00",
+        "C": "R$ 1.500,00",
+        "D": "R$ 1.550,00",
+        "E": "R$ 1.600,00"
+      },
+      "correct_option": "C",
+      "explanation": "A média aritmética é (1.200 + 1.500 + 1.800) ÷ 3 = R$ 1.500,00.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "informatica",
+      "topic_slug": "excel",
+      "statement": "No Excel em português, qual fórmula soma os valores do intervalo de B2 até B8?",
+      "options": {
+        "A": "=MEDIA(B2:B8)",
+        "B": "=SOMA(B2:B8)",
+        "C": "=CONTAR(B2;B8)",
+        "D": "=TOTAL(B2:B8)",
+        "E": "=ADICIONAR(B2:B8)"
+      },
+      "correct_option": "B",
+      "explanation": "A função SOMA adiciona todos os valores do intervalo indicado. Os dois-pontos representam o intervalo contínuo de B2 a B8.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "informatica",
+      "topic_slug": "internet-seguranca",
+      "statement": "Um funcionário recebe um e-mail inesperado solicitando atualização urgente de senha por meio de um link. Qual é a conduta mais segura?",
+      "options": {
+        "A": "Clicar no link porque a mensagem parece urgente.",
+        "B": "Responder informando a senha antiga para confirmar a identidade.",
+        "C": "Encaminhar o e-mail a todos os colegas.",
+        "D": "Não clicar; verificar o remetente e acessar o serviço pelo endereço oficial.",
+        "E": "Baixar todos os anexos para descobrir a origem."
+      },
+      "correct_option": "D",
+      "explanation": "A mensagem pode ser uma tentativa de phishing. O usuário deve evitar o link e confirmar a solicitação por canal oficial conhecido.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "informatica",
+      "topic_slug": "windows",
+      "statement": "Em configurações padrão do Windows, qual atalho é normalmente utilizado para copiar um item selecionado?",
+      "options": {
+        "A": "Ctrl + X",
+        "B": "Ctrl + C",
+        "C": "Ctrl + V",
+        "D": "Ctrl + Z",
+        "E": "Alt + F4"
+      },
+      "correct_option": "B",
+      "explanation": "Ctrl + C copia o item selecionado. Ctrl + X recorta, Ctrl + V cola, Ctrl + Z desfaz e Alt + F4 fecha a janela ativa.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "conhecimentos-gerais-atualidades",
+      "topic_slug": "politicas-publicas",
+      "statement": "Em termos gerais, uma política pública é:",
+      "options": {
+        "A": "Uma decisão exclusivamente privada, sem participação do Estado.",
+        "B": "Um conjunto de diretrizes e ações do poder público voltadas a enfrentar problemas coletivos.",
+        "C": "Uma atividade restrita à divulgação de notícias.",
+        "D": "Uma regra informal criada individualmente por cada servidor.",
+        "E": "Uma medida que necessariamente beneficia apenas uma empresa."
+      },
+      "correct_option": "B",
+      "explanation": "Políticas públicas envolvem decisões, diretrizes e ações do poder público para responder a necessidades e problemas coletivos.",
+      "difficulty": "facil",
+      "points": 1
+    },
+    {
+      "subject_slug": "conhecimentos-gerais-atualidades",
+      "topic_slug": "atualidades",
+      "statement": "Qual prática está mais alinhada ao desenvolvimento sustentável na administração de materiais?",
+      "options": {
+        "A": "Comprar sempre a maior quantidade possível, independentemente da necessidade.",
+        "B": "Descartar materiais reutilizáveis junto com resíduos comuns.",
+        "C": "Planejar as compras, reduzir desperdícios e considerar o ciclo de vida dos materiais.",
+        "D": "Substituir controles de estoque por estimativas informais.",
+        "E": "Priorizar apenas o menor preço inicial, sem avaliar qualidade ou durabilidade."
+      },
+      "correct_option": "C",
+      "explanation": "O planejamento de compras, a redução do desperdício e a análise do ciclo de vida contribuem para o uso responsável dos recursos.",
+      "difficulty": "medio",
+      "points": 1
+    },
+    {
+      "subject_slug": "conhecimentos-gerais-atualidades",
+      "topic_slug": "legislacao-municipal-geral",
+      "statement": "A Constituição Federal atribui aos Municípios competência para:",
+      "options": {
+        "A": "Legislar privativamente sobre direito penal.",
+        "B": "Emitir moeda.",
+        "C": "Organizar e prestar serviços públicos de interesse local, na forma da Constituição.",
+        "D": "Declarar guerra a outros países.",
+        "E": "Criar normas gerais de direito civil para todo o país."
+      },
+      "correct_option": "C",
+      "explanation": "O art. 30 da Constituição prevê competências municipais, entre elas legislar sobre assuntos de interesse local e organizar e prestar serviços públicos de interesse local.",
+      "difficulty": "medio",
+      "points": 1
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "direito-administrativo",
+      "statement": "O artigo 37 da Constituição Federal apresenta princípios expressos que devem ser observados pela Administração Pública. Qual alternativa reúne esses princípios?",
+      "options": {
+        "A": "Legalidade, impessoalidade, moralidade, publicidade e eficiência.",
+        "B": "Legalidade, pessoalidade, sigilo, hierarquia e economicidade.",
+        "C": "Moralidade, informalidade, exclusividade, publicidade e autonomia.",
+        "D": "Impessoalidade, oportunidade, sigilo, eficiência e pessoalidade.",
+        "E": "Legalidade, conveniência, supremacia, informalidade e publicidade."
+      },
+      "correct_option": "A",
+      "explanation": "O caput do art. 37 estabelece legalidade, impessoalidade, moralidade, publicidade e eficiência, conhecidos pela sigla LIMPE.",
+      "difficulty": "facil",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "direito-trabalho",
+      "statement": "Para caracterizar a relação de emprego, a CLT considera, entre outros elementos, a prestação de serviços por pessoa física, de forma não eventual, com onerosidade e:",
+      "options": {
+        "A": "Autonomia plena para definir qualquer condição de trabalho.",
+        "B": "Subordinação ao empregador.",
+        "C": "Ausência de remuneração.",
+        "D": "Possibilidade irrestrita de substituição por qualquer pessoa.",
+        "E": "Exclusividade obrigatória em todos os contratos."
+      },
+      "correct_option": "B",
+      "explanation": "A subordinação jurídica é um dos elementos caracterizadores da relação de emprego, ao lado de pessoalidade, não eventualidade e onerosidade, com trabalho prestado por pessoa física.",
+      "difficulty": "medio",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "administracao-geral-rotinas",
+      "statement": "No processo administrativo, as funções clássicas de planejar, organizar, dirigir e controlar são utilizadas para:",
+      "options": {
+        "A": "Substituir todos os procedimentos e controles formais.",
+        "B": "Estruturar e coordenar o trabalho para alcançar objetivos organizacionais.",
+        "C": "Impedir a distribuição de responsabilidades.",
+        "D": "Eliminar a necessidade de avaliação de resultados.",
+        "E": "Restringir a comunicação entre os setores."
+      },
+      "correct_option": "B",
+      "explanation": "Planejar, organizar, dirigir e controlar são funções administrativas que orientam objetivos, recursos, execução e avaliação dos resultados.",
+      "difficulty": "facil",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "rotinas-financeiras-contabilidade",
+      "statement": "Uma nota fiscal de fornecedor foi recebida, conferida e aprovada, mas ainda não foi paga. Em regra, ela deve ser considerada na rotina de:",
+      "options": {
+        "A": "Contas a receber, pois representa receita futura.",
+        "B": "Contas a pagar, pois representa uma obrigação perante o fornecedor.",
+        "C": "Conciliação de férias.",
+        "D": "Ativo imobilizado automaticamente.",
+        "E": "Receita operacional já recebida."
+      },
+      "correct_option": "B",
+      "explanation": "Uma obrigação aprovada e ainda não liquidada integra o controle de contas a pagar, respeitando vencimento, autorização e classificação contábil.",
+      "difficulty": "facil",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "rotinas-financeiras-contabilidade",
+      "statement": "A conciliação bancária consiste principalmente em:",
+      "options": {
+        "A": "Comparar os registros financeiros internos com o extrato bancário e investigar diferenças.",
+        "B": "Somar apenas as notas fiscais emitidas no mês.",
+        "C": "Substituir o controle de contas a pagar.",
+        "D": "Registrar somente os depósitos em dinheiro.",
+        "E": "Eliminar lançamentos antigos sem conferência."
+      },
+      "correct_option": "A",
+      "explanation": "A conciliação confronta os registros da organização com o extrato bancário, identificando diferenças, lançamentos pendentes ou erros.",
+      "difficulty": "facil",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "rotinas-financeiras-contabilidade",
+      "statement": "Em contabilidade, qual alternativa apresenta corretamente a classificação básica dos elementos patrimoniais?",
+      "options": {
+        "A": "Ativo representa apenas dívidas; passivo representa apenas dinheiro em caixa.",
+        "B": "Ativo reúne bens e direitos; passivo reúne obrigações.",
+        "C": "Receita é sempre uma obrigação; despesa é sempre um direito.",
+        "D": "Patrimônio é composto exclusivamente por receitas.",
+        "E": "Passivo representa somente os bens permanentes."
+      },
+      "correct_option": "B",
+      "explanation": "Ativo representa bens e direitos; passivo representa obrigações. O patrimônio líquido corresponde à diferença entre ativo e passivo exigível.",
+      "difficulty": "medio",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "direito-constitucional",
+      "statement": "De acordo com a Constituição Federal, os Municípios podem:",
+      "options": {
+        "A": "Legislar sobre assuntos de interesse local e suplementar a legislação federal e estadual no que couber.",
+        "B": "Revogar leis federais por decreto municipal.",
+        "C": "Criar tribunais de justiça estaduais.",
+        "D": "Alterar a Constituição Federal por lei ordinária.",
+        "E": "Exercer competências exclusivas da União em política monetária."
+      },
+      "correct_option": "A",
+      "explanation": "O art. 30, incisos I e II, prevê a competência municipal para legislar sobre assuntos de interesse local e suplementar a legislação federal e estadual no que couber.",
+      "difficulty": "medio",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "empresas-estatais-governanca",
+      "statement": "A Lei Federal nº 13.303/2016 trata principalmente:",
+      "options": {
+        "A": "Do Estatuto Jurídico das empresas públicas e sociedades de economia mista.",
+        "B": "Do regime geral de previdência dos trabalhadores rurais.",
+        "C": "Da organização dos cartórios extrajudiciais.",
+        "D": "Da criação dos municípios brasileiros.",
+        "E": "Da regulamentação exclusiva de sociedades anônimas privadas sem participação estatal."
+      },
+      "correct_option": "A",
+      "explanation": "A Lei 13.303/2016 estabelece o estatuto jurídico das empresas públicas, sociedades de economia mista e suas subsidiárias, incluindo regras de governança, transparência e contratações.",
+      "difficulty": "facil",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "legislacao-sbmg",
+      "statement": "Para estudar o regime jurídico e a governança da Terminais Aéreos de Maringá – SBMG, o edital de 2026 indica, entre outras normas, a Lei Federal nº 13.303/2016 e:",
+      "options": {
+        "A": "Apenas o Código de Trânsito Brasileiro.",
+        "B": "O Estatuto Social, o Código de Conduta e Integridade e o Regulamento de Licitações e Contratos da SBMG.",
+        "C": "Somente a legislação de concursos da União.",
+        "D": "Exclusivamente as normas de controle de tráfego aéreo.",
+        "E": "Apenas a Lei de Diretrizes Orçamentárias federal."
+      },
+      "correct_option": "B",
+      "explanation": "O conteúdo específico do cargo inclui criação, estrutura, governança e funcionamento da SBMG, seu Estatuto Social, Código de Conduta e Integridade e Regulamento de Licitações e Contratos.",
+      "difficulty": "medio",
+      "points": 2
+    },
+    {
+      "subject_slug": "conhecimentos-especificos",
+      "topic_slug": "administracao-geral-rotinas",
+      "statement": "Ao receber um processo administrativo, qual procedimento contribui para a rastreabilidade documental?",
+      "options": {
+        "A": "Guardar o processo sem registro para agilizar o atendimento.",
+        "B": "Registrar o recebimento, identificar o documento e controlar sua tramitação.",
+        "C": "Encaminhar o processo sem conferir os anexos.",
+        "D": "Retirar documentos originais sem autorização.",
+        "E": "Deixar o protocolo para ser feito apenas no encerramento do ano."
+      },
+      "correct_option": "B",
+      "explanation": "O protocolo organiza o recebimento, registro, identificação e tramitação dos documentos, permitindo rastrear as etapas do processo.",
+      "difficulty": "facil",
+      "points": 2
+    }
+  ]
+}
