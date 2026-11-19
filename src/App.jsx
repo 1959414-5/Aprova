@@ -382,7 +382,7 @@ export default function App() {
   const [notice, setNotice] = useState("");
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
-  const [view, setView] = useState("dashboard");
+  const [view, setView] = useState(() => { try { return localStorage.getItem("aprova-current-view") || "dashboard"; } catch { return "dashboard"; } });
   const [exam, setExam] = useState(null);
   const [subjectRows, setSubjectRows] = useState([]);
   const [profile, setProfile] = useState(null);
@@ -415,7 +415,7 @@ export default function App() {
   const [flashcardReviews, setFlashcardReviews] = useState([]);
   const [flashcardRevealed, setFlashcardRevealed] = useState(false);
   const [flashcardBusy, setFlashcardBusy] = useState(false);
-  const [expandedSubject, setExpandedSubject] = useState(null);
+  const [expandedSubject, setExpandedSubject] = useState(() => { try { return localStorage.getItem("aprova-expanded-subject") || null; } catch { return null; } });
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [plannedMinutes, setPlannedMinutes] = useState(() => {
     try {
