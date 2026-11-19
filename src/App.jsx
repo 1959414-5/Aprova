@@ -172,7 +172,13 @@ function AuthScreen({ theme, setTheme }) {
 
 function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onMarkComplete, onCancel, onAskTutor, onClose }) {
   const [completionMode, setCompletionMode] = useState(null);
+  const [understoodSections, setUnderstoodSections] = useState([]);
+  const [revealedChecks, setRevealedChecks] = useState([]);
   const content = lesson?.content || {};
+  const sections = content.sections || [];
+  const lessonProgressPercent = sections.length ? Math.round((understoodSections.length / sections.length) * 100) : 0;
+  function toggleSectionUnderstood(index) { setUnderstoodSections((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]); }
+  function toggleCheckReveal(index) { setRevealedChecks((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]); }
   const hasActiveSession = activeSession?.kind === "topico" && activeSession?.topicId === topic.id;
   const anotherSessionActive = Boolean(activeSession) && !hasActiveSession;
   const completed = progress?.status === "concluido";
