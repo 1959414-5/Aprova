@@ -1647,7 +1647,7 @@ export default function App() {
             >
               <span className="topbar-tutor-icon">✦</span>
             </button>
-            <div className="profile-menu-wrap">
+            <div className="profile-menu-wrap" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setProfileMenuOpen(false); }}>
               <button className="topbar-user profile-menu-trigger" type="button" aria-haspopup="menu" aria-expanded={profileMenuOpen} aria-label="Menu do usuário" onClick={() => setProfileMenuOpen((open) => !open)}>
                 <span className="topbar-user-name" title={user.email}>{profile?.display_name || user.email?.split("@")[0] || "Candidato"}</span>
                 <span className="avatar avatar-small" aria-hidden="true">{(profile?.display_name || user.email || "A").slice(0, 1).toUpperCase()}</span>
