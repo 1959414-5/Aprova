@@ -212,7 +212,7 @@ h2 { font-size: 17px; margin: 5px 0 0; letter-spacing: -.025em; }
 .chevron { font-size: 20px; color: var(--mint-deep); padding: 0 4px; }
 .subject-card > .subject-progress-track { margin: 0 17px 0 66px; height: 4px; }
 .topic-list { padding: 4px 17px 10px; }
-.topic-item { display: grid; grid-template-columns: 28px minmax(0,1fr) 32px; gap: 11px; padding: 15px 0; border-top: 1px solid var(--line); align-items: start; }
+.topic-item { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; gap: 11px; padding: 15px 0; border-top: 1px solid var(--line); align-items: start; }
 .topic-index { color: var(--subtle); font: 800 11px "Manrope",sans-serif; padding-top: 2px; }
 .topic-main strong { font-size: 12px; }
 .topic-main p { color: var(--muted); font-size: 11px; line-height: 1.65; margin: 6px 0; }
@@ -448,8 +448,11 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 }
 .topic-open-button {
   flex: 0 0 auto;
+  width: max-content;
+  min-width: 104px;
   min-height: 34px;
   padding: 8px 12px;
+  white-space: nowrap;
   font-size: 10px;
 }
 .lesson-panel {
@@ -1888,4 +1891,106 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   .lesson-confirm-actions { display: grid; grid-template-columns: 1fr; }
   .lesson-confirm-actions .button { width: 100%; }
   .essay-lesson-state-copy { min-width: 0; }
+}
+
+
+/* Cada tópico abre como uma área própria, sem renderizar abaixo da lista. */
+.study-session-page { max-width: 1160px; }
+.study-session-page .lesson-panel { margin-top: 10px; }
+.lesson-back-button { margin-bottom: 4px; }
+
+/* Prévia da aula de redação: o conteúdo só aparece após iniciar a sessão. */
+.essay-lesson-preview {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: clamp(15px,2.5vw,22px);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface-2);
+}
+.essay-lesson-preview-heading {
+  display: grid;
+  gap: 5px;
+}
+.essay-lesson-preview-heading > strong {
+  color: var(--text);
+  font: 800 15px "Manrope",sans-serif;
+}
+.essay-lesson-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap: 12px;
+}
+.essay-lesson-summary-list {
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 11px;
+}
+.essay-lesson-summary-list > strong {
+  display: block;
+  margin-bottom: 8px;
+  font: 800 10px "Manrope",sans-serif;
+}
+.essay-lesson-summary-list ul {
+  margin: 0;
+  padding-left: 17px;
+  color: var(--text-soft);
+  line-height: 1.8;
+}
+.essay-lesson-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 13px;
+  border-top: 1px solid var(--line);
+}
+.essay-start-button { min-width: 150px; }
+.essay-session-hint {
+  margin: 0;
+  font-size: 10px;
+}
+.essay-active-lesson { margin-top: 17px; }
+.essay-active-timer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 17px;
+  padding: 12px 15px;
+  border: 1px solid rgba(83,164,133,.28);
+  border-radius: 13px;
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+.essay-active-timer > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.essay-active-timer .eyebrow { color: var(--success-text); }
+.essay-active-timer > strong {
+  font: 800 19px "Manrope",sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.essay-lesson-session-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.essay-course-footer .essay-lesson-session-actions .button { min-height: 39px; }
+@media (max-width: 720px) {
+  .topic-item { grid-template-columns: 20px minmax(0,1fr); }
+  .topic-open-button { grid-column: 2; justify-self: start; }
+  .essay-lesson-preview-grid { grid-template-columns: 1fr; }
+  .essay-lesson-preview-footer { align-items: stretch; flex-direction: column; }
+  .essay-start-button { width: 100%; }
+  .essay-lesson-session-actions { align-items: stretch; flex-direction: column; }
+  .essay-lesson-session-actions .button { width: 100%; }
+  .essay-active-timer { align-items: flex-start; }
 }
