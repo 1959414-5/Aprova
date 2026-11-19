@@ -10,8 +10,8 @@ Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [d
 ## Stack
 - React + Vite
 - Supabase Auth e Postgres
-- Supabase Edge Functions para correção protegida e Professor IA
-- OpenAI Responses API (chave armazenada somente nos Secrets do Supabase)
+- Supabase Edge Functions para correção de respostas e Professor IA
+- OpenAI Responses API, com chave armazenada somente nos Secrets do Supabase
 
 ## Executar localmente
 1. Instale Node.js 22.
@@ -21,31 +21,31 @@ Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [d
 
 ## Conteúdo e preparação
 - 5 disciplinas e 45 tópicos correspondentes ao Anexo III.
-- 45 aulas autorais estruturadas com objetivos, explicações, exemplos resolvidos, resumos, erros comuns e exercícios de fixação: `content/lessons.json`.
-- Progresso de tópico separado do tempo efetivo de estudo.
-- Sessões cronometradas: o tempo é persistido somente quando o candidato salva.
-- Diagnóstico inicial com 22 questões autorais, identificadas como conteúdo não oficial e pendentes de revisão humana.
-- Professor IA contextualizado pelo tópico e pela aula selecionada; limite inicial de 35 solicitações por usuário/dia.
+- 45 aulas autorais com objetivos, explicações, exemplos resolvidos, resumos, erros comuns e exercícios de fixação: `content/lessons.json`.
+- Progresso do tópico separado do tempo efetivamente estudado; sessões cronometradas só são salvas quando o candidato finaliza.
+- Diagnóstico curto com 22 questões, distribuídas proporcionalmente.
+- Simulado completo com 70 questões e os pesos exatos da prova objetiva: 10/10/10/10/30 questões e 100 pontos.
+- Banco inicial de 70 questões autorais, todas identificadas como geradas para treino e pendentes de revisão humana.
+- No simulado, o gabarito fica oculto durante a execução; a nota ponderada e o gabarito comentado são liberados apenas após finalizar.
 
 ## Supabase
-Projeto: `ehsrjjflwrmmegfvupch`. O schema original tem 15 tabelas com RLS habilitado. Foram adicionadas:
+Projeto: `ehsrjjflwrmmegfvupch`. O schema original tem 15 tabelas com RLS habilitado. Tabelas adicionais:
 - `topic_lessons`: leitura autenticada de aulas publicadas.
 - `topic_progress`: progresso isolado por usuário.
-- `ai_tutor_usage`: controle privado de chamadas do Professor IA.
-
-SQLs: `supabase/sql/`.
+- `ai_tutor_usage`: controle privado de chamadas do tutor.
 
 Edge Functions:
-- `answer-question`: corrige respostas no servidor sem expor o gabarito.
-- `study-tutor`: chama a Responses API do servidor, usando `OPENAI_API_KEY`.
+- `answer-question`: registra a resposta; só revela correção imediata no diagnóstico/prática.
+- `finish-assessment`: calcula a nota e libera gabarito somente após a finalização.
+- `study-tutor`: tutor contextualizado pelo tópico selecionado.
+
+SQLs versionados em `supabase/sql/`.
 
 ## Ativar o Professor IA
-O código e a função já estão implantados, mas a função retorna “não configurado” até que a chave da API seja adicionada aos Secrets do Supabase. Siga [docs/PROFESSOR-IA.md](docs/PROFESSOR-IA.md).
-
-**Não coloque a chave em arquivos `.env` versionados, em variáveis `VITE_*`, no GitHub ou no chat.** A chave deve ficar apenas no secret `OPENAI_API_KEY` do Supabase. O uso da API é faturado separadamente da assinatura ChatGPT.
+A função está implantada, mas precisa da chave da OpenAI no secret `OPENAI_API_KEY` do Supabase. Siga [docs/PROFESSOR-IA.md](docs/PROFESSOR-IA.md). A chave não deve ficar em `.env`, VITE, GitHub ou no navegador. O faturamento da API é separado da assinatura ChatGPT.
 
 ## Segurança
-O repositório é público. Não inclua service-role/secret key, chaves de provedores de IA ou gabaritos nas fontes versionadas. A publishable key é apropriada ao frontend com RLS habilitado.
+O repositório é público. Não inclua service-role/secret key, chaves de provedores de IA ou gabaritos nas fontes versionadas. A publishable key é apropriada para o frontend com RLS habilitado.
 
 ## Fontes
 - Edital nº 001/2026 — Anexos II e III.

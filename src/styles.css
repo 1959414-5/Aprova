@@ -857,3 +857,162 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   .tutor-composer .button { width: 100%; }
   .lesson-tutor-action .button { width: 100%; }
 }
+
+
+/* Simulados completos e gabarito pós-entrega. */
+.simulation-hero {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-out);
+  padding: clamp(20px, 3vw, 30px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 17px;
+}
+.simulation-hero h2 {
+  font-size: clamp(20px, 2.4vw, 27px);
+  margin: 8px 0;
+}
+.simulation-hero p {
+  max-width: 700px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.simulation-total {
+  width: 128px;
+  height: 128px;
+  flex: 0 0 128px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-in);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.simulation-total strong {
+  font: 800 38px "Manrope", sans-serif;
+  color: var(--mint-deep);
+  line-height: 1;
+}
+.simulation-total span { font-size: 10px; color: var(--muted); margin-top: 5px; }
+.simulation-total small { font-size: 10px; font-weight: 800; margin-top: 3px; color: var(--text-soft); }
+.simulation-distribution { margin-bottom: 14px; }
+.simulation-distribution .panel-heading { align-items: end; }
+.simulation-subject-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) minmax(90px, 1.5fr) 70px;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+}
+.simulation-subject-row > div:first-child { display: grid; gap: 4px; }
+.simulation-subject-row strong { font-size: 11px; }
+.simulation-subject-row small { color: var(--muted); font-size: 9px; }
+.simulation-subject-row > b { font: 800 11px "Manrope", sans-serif; text-align: right; white-space: nowrap; }
+.simulation-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-in-sm);
+  overflow: hidden;
+}
+.simulation-bar span {
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  background: var(--mint-strong);
+  box-shadow: 0 0 10px rgba(0,201,154,.22);
+}
+.simulation-note {
+  font-size: 11px;
+  line-height: 1.7;
+}
+.quiz-timer-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  box-shadow: var(--shadow-out-sm);
+  padding: 9px 13px;
+  margin-bottom: 10px;
+}
+.quiz-timer-strip span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+.quiz-timer-strip strong {
+  font: 800 15px "Manrope", sans-serif;
+  color: var(--mint-deep);
+  font-variant-numeric: tabular-nums;
+}
+.answer-review { margin: 14px 0; }
+.answer-review summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.answer-review summary::-webkit-details-marker { display: none; }
+.answer-review summary span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.answer-review-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 15px;
+}
+.answer-review-item {
+  border-top: 1px solid var(--line);
+  padding: 13px 0 0;
+}
+.answer-review-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.answer-review-top strong { font-size: 10px; }
+.review-correct, .review-incorrect {
+  border-radius: 99px;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.review-correct { background: var(--success-bg); color: var(--success-text); }
+.review-incorrect { background: var(--error-bg); color: var(--error-text); }
+.answer-review-item h3 {
+  font: 700 12px "Manrope", sans-serif;
+  line-height: 1.6;
+  margin: 9px 0 5px;
+}
+.answer-review-item p {
+  font-size: 10px;
+  line-height: 1.7;
+  margin: 5px 0;
+}
+@media (max-width: 720px) {
+  .simulation-hero { align-items: flex-start; flex-direction: column-reverse; }
+  .simulation-total { width: 90px; height: 90px; flex-basis: 90px; }
+  .simulation-total strong { font-size: 29px; }
+  .simulation-subject-row {
+    grid-template-columns: minmax(0, 1fr) 54px;
+    gap: 7px 10px;
+  }
+  .simulation-subject-row .simulation-bar { grid-column: 1; }
+  .simulation-subject-row > b { grid-column: 2; grid-row: 1 / span 2; }
+  .quiz-timer-strip { margin-top: 4px; }
+}

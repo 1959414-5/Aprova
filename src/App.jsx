@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { id: "dashboard", icon: "⌂", label: "Visão geral" },
   { id: "study", icon: "▤", label: "Sala de estudos" },
   { id: "tutor", icon: "✦", label: "Professor IA" },
+  { id: "simulations", icon: "▧", label: "Simulados" },
   { id: "diagnostic", icon: "✓", label: "Diagnóstico" },
   { id: "performance", icon: "↗", label: "Desempenho" },
 ];
@@ -222,7 +223,9 @@ export default function App() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const diagnosticStartLock = useRef(false);
   const [quizQuestions, setQuizQuestions] = useState([]);
+  const [quizMode, setQuizMode] = useState("diagnostico");
   const [quizRunId, setQuizRunId] = useState(null);
+  const [quizElapsedSeconds, setQuizElapsedSeconds] = useState(0);
   const [quizIndex, setQuizIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
   const [feedback, setFeedback] = useState(null);
@@ -236,6 +239,21 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem("aprova-theme", theme); } catch { /* armazenamento indisponível */ }
   }, [theme]);
+
+  useEffect(() => {
+    if (view !== "diagnostic" && view !== "simulation") {
+      setQuizElapsedSeconds(0);
+      return undefined;
+    }
+    if (!quizStartedAt) {
+      setQuizElapsedSeconds(0);
+      return undefined;
+    }
+    const updateQuizElapsed = () => setQuizElapsedSeconds(Math.max(0, Math.floor((Date.now() - quizStartedAt) / 1000)));
+    updateQuizElapsed();
+    const interval = window.setInterval(updateQuizElapsed, 1000);
+    return () => window.clearInterval(interval);
+  }, [view, quizStartedAt]);
 
   useEffect(() => {
     if (!activeSession) {
@@ -478,21 +496,37 @@ export default function App() {
     setSelectedOption("");
     setResponses([]);
     setQuizResult(null);
+    setQuizMode("diagnostico");
     try {
       const { data: bank, error: bankError } = await supabase.from("questions")
         .select("id, exam_subject_id, topic_id, statement, options, difficulty, points, origin")
         .eq("exam_id", exam.id).eq("is_published", true);
       if (bankError) throw bankError;
-      if (!bank || bank.length < 10) throw new Error("O banco de diagnóstico ainda está sendo preparado.");
+      if (!bank || bank.length < 22) throw new Error("O banco do diagnóstico ainda está sendo preparado.");
 
-      const selected = shuffle(bank);
+      const sampleCounts = {
+        "lingua-portuguesa": 3,
+        "matematica-raciocinio-logico": 3,
+        informatica: 3,
+        "conhecimentos-gerais-atualidades": 3,
+        "conhecimentos-especificos": 10,
+      };
+      const selected = subjectRows.flatMap((row) => {
+        const slug = row.subjects?.slug;
+        const count = sampleCounts[slug] || 0;
+        return shuffle(bank.filter((question) => question.exam_subject_id === row.id)).slice(0, count);
+      });
+      if (selected.length !== 22) {
+        throw new Error("Não foi possível montar o diagnóstico com a distribuição prevista de 22 questões.");
+      }
+
       const { data: run, error: runError } = await supabase.from("assessment_runs").insert({
         user_id: user.id,
         exam_id: exam.id,
         run_type: "diagnostico",
-        title: "Diagnóstico inicial — SBMG 2026",
+        title: "Diagnóstico inicial — 22 questões",
         question_count: selected.length,
-        metadata: { origin: "banco_autoral_inicial", exam_slug: EXAM_SLUG },
+        metadata: { origin: "banco_autoral_ia", question_distribution: sampleCounts },
       }).select("id").single();
       if (runError) throw runError;
 
@@ -510,19 +544,76 @@ export default function App() {
     }
   }
 
-  async function leaveDiagnostic() {
-    if (quizRunId && user) {
-      if (responses.length === 0) {
-        const { error } = await supabase.from("assessment_runs")
-          .delete().eq("id", quizRunId).eq("user_id", user.id);
-        if (error) setNotice("Não foi possível descartar o diagnóstico vazio: " + error.message);
-      } else {
-        const { error } = await supabase.from("assessment_runs").update({
-          finished_at: new Date().toISOString(),
-          metadata: { origin: "banco_autoral_inicial", partial: true, abandoned: true },
-        }).eq("id", quizRunId).eq("user_id", user.id);
-        if (error) setNotice("Não foi possível registrar a saída do diagnóstico: " + error.message);
+  async function startSimulation() {
+    if (!exam || !user || diagnosticStartLock.current) return;
+    diagnosticStartLock.current = true;
+    setBusy(true);
+    setNotice("");
+    setFeedback(null);
+    setSelectedOption("");
+    setResponses([]);
+    setQuizResult(null);
+    setQuizMode("simulado");
+    try {
+      const { data: bank, error: bankError } = await supabase.from("questions")
+        .select("id, exam_subject_id, topic_id, statement, options, difficulty, points, origin")
+        .eq("exam_id", exam.id).eq("is_published", true);
+      if (bankError) throw bankError;
+      if (!bank || bank.length !== 70) {
+        throw new Error("O simulado completo exige exatamente 70 questões publicadas. O banco ainda não está completo.");
       }
+
+      const selected = subjectRows.flatMap((row) => {
+        const count = row.subjects?.slug === "conhecimentos-especificos" ? 30 : 10;
+        return shuffle(bank.filter((question) => question.exam_subject_id === row.id)).slice(0, count);
+      });
+      if (selected.length !== 70) {
+        throw new Error("Não foi possível montar o simulado na distribuição oficial de 70 questões.");
+      }
+
+      const { data: run, error: runError } = await supabase.from("assessment_runs").insert({
+        user_id: user.id,
+        exam_id: exam.id,
+        run_type: "simulado",
+        title: "Simulado completo — 70 questões",
+        question_count: 70,
+        metadata: {
+          origin: "banco_autoral_ia",
+          question_distribution: {
+            "lingua-portuguesa": 10,
+            "matematica-raciocinio-logico": 10,
+            informatica: 10,
+            "conhecimentos-gerais-atualidades": 10,
+            "conhecimentos-especificos": 30,
+          },
+        },
+      }).select("id").single();
+      if (runError) throw runError;
+
+      setQuizQuestions(selected);
+      setQuizRunId(run.id);
+      setQuizIndex(0);
+      setQuizStartedAt(Date.now());
+      setQuestionStartedAt(Date.now());
+      setView("simulation");
+    } catch (err) {
+      setNotice(err.message || "Não foi possível iniciar o simulado.");
+    } finally {
+      diagnosticStartLock.current = false;
+      setBusy(false);
+    }
+  }
+
+  async function leaveAssessment() {
+    if (quizRunId && user) {
+      const { error } = await supabase.functions.invoke("finish-assessment", {
+        body: {
+          assessment_run_id: quizRunId,
+          allow_partial: responses.length > 0,
+          abandon: responses.length === 0,
+        },
+      });
+      if (error) setNotice(error.message || "Não foi possível encerrar a avaliação.");
     }
     setQuizRunId(null);
     setQuizQuestions([]);
@@ -540,19 +631,34 @@ export default function App() {
     try {
       const elapsed = questionStartedAt ? Math.round((Date.now() - questionStartedAt) / 1000) : 0;
       const { data, error } = await supabase.functions.invoke("answer-question", {
-        body: { question_id: currentQuestion.id, selected_option: selectedOption, assessment_run_id: quizRunId, time_spent_seconds: elapsed },
+        body: {
+          question_id: currentQuestion.id,
+          selected_option: selectedOption,
+          assessment_run_id: quizRunId,
+          time_spent_seconds: elapsed,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setFeedback(data);
-      setResponses((previous) => [...previous, {
-        questionId: currentQuestion.id,
-        isCorrect: Boolean(data.correct),
-        points: Number(currentQuestion.points || 1),
-        topicId: currentQuestion.topic_id,
-      }]);
+      if (quizMode === "simulado") {
+        if (!data?.recorded || data?.feedback_hidden !== true) throw new Error("Não foi possível registrar a resposta.");
+        setFeedback({ recorded: true });
+        setResponses((previous) => [...previous, {
+          questionId: currentQuestion.id,
+          points: Number(currentQuestion.points || 1),
+          topicId: currentQuestion.topic_id,
+        }]);
+      } else {
+        setFeedback(data);
+        setResponses((previous) => [...previous, {
+          questionId: currentQuestion.id,
+          isCorrect: Boolean(data.correct),
+          points: Number(currentQuestion.points || 1),
+          topicId: currentQuestion.topic_id,
+        }]);
+      }
     } catch (err) {
-      setNotice(err.message || "Erro ao corrigir a resposta. Tente novamente.");
+      setNotice(err.message || "Erro ao registrar a resposta. Tente novamente.");
     } finally {
       setBusy(false);
     }
@@ -566,28 +672,30 @@ export default function App() {
       setQuestionStartedAt(Date.now());
       return;
     }
-    const earned = responses.reduce((sum, item) => sum + (item.isCorrect ? item.points : 0), 0);
-    const possible = quizQuestions.reduce((sum, item) => sum + Number(item.points || 1), 0);
-    const finalScore = possible ? Number(((earned / possible) * 100).toFixed(2)) : 0;
-    const elapsed = quizStartedAt ? Math.round((Date.now() - quizStartedAt) / 1000) : 0;
-    const { error } = await supabase.from("assessment_runs").update({
-      finished_at: new Date().toISOString(),
-      duration_seconds: elapsed,
-      score: finalScore,
-      max_score: 100,
-      correct_count: responses.filter((item) => item.isCorrect).length,
-      question_count: quizQuestions.length,
-      metadata: { origin: "banco_autoral_inicial", raw_points: earned, raw_max_points: possible },
-    }).eq("id", quizRunId).eq("user_id", user.id);
-    if (error) { setNotice(error.message); return; }
-    setQuizResult({
-      score: finalScore,
-      correct: responses.filter((item) => item.isCorrect).length,
-      total: quizQuestions.length,
-      minutes: Math.max(1, Math.round(elapsed / 60)),
-    });
-    setView("results");
-    await loadDashboard(user);
+
+    setBusy(true);
+    try {
+      const elapsed = quizStartedAt ? Math.round((Date.now() - quizStartedAt) / 1000) : 0;
+      const { data, error } = await supabase.functions.invoke("finish-assessment", {
+        body: { assessment_run_id: quizRunId, allow_partial: false },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setQuizResult({
+        ...data,
+        mode: quizMode,
+        score: Number(data.score ?? 0),
+        correct: Number(data.correct ?? 0),
+        total: Number(data.total ?? quizQuestions.length),
+        minutes: Math.max(1, Number(data.minutes ?? Math.round(elapsed / 60))),
+      });
+      setView("results");
+      await loadDashboard(user);
+    } catch (err) {
+      setNotice(err.message || "Não foi possível finalizar e corrigir esta avaliação.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function signOut() {
@@ -610,7 +718,7 @@ export default function App() {
         <div className="sidebar-label">ÁREA DE ESTUDOS</div>
         <nav className="side-nav">
           {NAV_ITEMS.map((item) => (
-            <button key={item.id} className={view === item.id || (view === "results" && item.id === "diagnostic") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? startDiagnostic() : setView(item.id)}>
+            <button key={item.id} className={view === item.id || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? startDiagnostic() : setView(item.id)}>
               <span className="nav-icon">{item.icon}</span>{item.label}
             </button>
           ))}
@@ -632,7 +740,7 @@ export default function App() {
 
       <main className="main-area">
         <header className="topbar">
-          <div><span className="eyebrow">CONCURSO SBMG · 2026</span><div className="topbar-title">{NAV_ITEMS.find((item) => item.id === view)?.label || (view === "results" ? "Resultado do diagnóstico" : "Área do candidato")}</div></div>
+          <div><span className="eyebrow">CONCURSO SBMG · 2026</span><div className="topbar-title">{view === "simulation" ? "Simulado completo" : NAV_ITEMS.find((item) => item.id === view)?.label || (view === "results" ? (quizResult?.mode === "simulado" ? "Resultado do simulado" : "Resultado do diagnóstico") : "Área do candidato")}</div></div>
           <div className="topbar-right">
             <span className="top-date">{formatDate(new Date())}</span>
             <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
@@ -685,6 +793,7 @@ export default function App() {
                 </div>
                 <div className="plan-tip"><span>✦</span><p><strong>Constância vale mais que maratonas.</strong><br />Uma sessão curta com atenção e exercícios é melhor do que tentar compensar vários dias de uma vez.</p></div>
                 <button className="button button-primary button-wide" onClick={startDiagnostic}>Começar pelo diagnóstico</button>
+                <button className="button button-secondary button-wide" onClick={() => setView("simulations")}>Ver simulados completos →</button>
               </div>
             </div>
           </section>
@@ -812,35 +921,107 @@ export default function App() {
           </section>
         )}
 
-        {view === "diagnostic" && currentQuestion && (
+        {view === "simulations" && (
+          <section className="content-section">
+            <div className="page-heading">
+              <span className="eyebrow">TREINO CRONOMETRADO · EDITAL 001/2026</span>
+              <h1>Simulados</h1>
+              <p className="muted">Treine a prova objetiva completa com 70 questões, distribuição e pontuação iguais às previstas no edital.</p>
+            </div>
+            <div className="simulation-hero">
+              <div>
+                <span className="eyebrow eyebrow-light">SIMULADO COMPLETO</span>
+                <h2>70 questões · 100 pontos</h2>
+                <p>As questões são autorais, baseadas no conteúdo programático. Durante a prova, o sistema não revela acertos nem gabarito. A correção comentada aparece somente depois da entrega.</p>
+                <button className="button button-primary" onClick={startSimulation} disabled={busy}>Iniciar simulado completo →</button>
+              </div>
+              <div className="simulation-total"><strong>70</strong><span>questões</span><small>100 pontos</small></div>
+            </div>
+            <div className="panel simulation-distribution">
+              <div className="panel-heading"><div><span className="eyebrow">DISTRIBUIÇÃO OFICIAL</span><h2>Estrutura da prova objetiva</h2></div><span className="muted small-copy">Tempo total do concurso: 4h30 para objetiva e redação</span></div>
+              {subjectRows.map((row) => (
+                <div className="simulation-subject-row" key={row.id}>
+                  <div><strong>{row.subjects?.name}</strong><small>{row.question_count} questões</small></div>
+                  <div className="simulation-bar"><span style={{ width: ((row.question_count || 0) / 70 * 100) + "%" }} /></div>
+                  <b>{row.total_points || row.question_count} pts</b>
+                </div>
+              ))}
+            </div>
+            <div className="notice notice-success simulation-note">
+              <strong>Como funciona:</strong> todas as questões são respondidas sem feedback imediato. Ao concluir, o servidor calcula a nota ponderada, mostra o resultado por disciplina e libera o gabarito comentado.
+            </div>
+          </section>
+        )}
+
+        {(view === "diagnostic" || view === "simulation") && currentQuestion && (
           <section className="content-section quiz-section">
-            <div className="quiz-topline"><button className="back-button" onClick={leaveDiagnostic}>← Sair do diagnóstico</button><span>DIAGNÓSTICO INICIAL · QUESTÕES AUTORAIS</span><strong>{quizIndex + 1} <small>/ {quizQuestions.length}</small></strong></div>
-            <div className="quiz-progress"><span style={{ width: ((quizIndex + (feedback ? 1 : 0)) / quizQuestions.length * 100) + "%" }} /></div>
+            <div className="quiz-topline"><button className="back-button" onClick={leaveAssessment}>← {quizMode === "simulado" ? "Sair do simulado" : "Sair do diagnóstico"}</button><span>{quizMode === "simulado" ? "SIMULADO COMPLETO · SEM GABARITO DURANTE A PROVA" : "DIAGNÓSTICO INICIAL · QUESTÕES AUTORAIS"}</span><strong>{quizIndex + 1} <small>/ {quizQuestions.length}</small></strong></div>
+            <div className="quiz-timer-strip"><span>{quizMode === "simulado" ? "SIMULADO · 70 QUESTÕES" : "DIAGNÓSTICO · 22 QUESTÕES"}</span><strong>{formatElapsed(quizElapsedSeconds)}</strong></div><div className="quiz-progress"><span style={{ width: ((quizIndex + (feedback ? 1 : 0)) / quizQuestions.length * 100) + "%" }} /></div>
             <div className="quiz-card">
               <div className="quiz-meta"><span className="eyebrow">{getSubjectName(subjectRows, currentQuestion.exam_subject_id)}</span><span className={"difficulty difficulty-" + currentQuestion.difficulty}>{currentQuestion.difficulty}</span></div>
               <h1>{currentQuestion.statement}</h1>
               <div className="option-list">
                 {(currentQuestion.options || []).map((option) => {
                   const isSelected = selectedOption === option.id;
-                  const stateClass = feedback && option.id === feedback.correct_option ? "option correct" : feedback && isSelected && !feedback.correct ? "option incorrect" : isSelected ? "option selected" : "option";
+                  const stateClass = quizMode === "simulado" ? (isSelected ? "option selected" : "option") : feedback && option.id === feedback.correct_option ? "option correct" : feedback && isSelected && !feedback.correct ? "option incorrect" : isSelected ? "option selected" : "option";
                   return <button key={option.id} className={stateClass} disabled={Boolean(feedback)} onClick={() => setSelectedOption(option.id)}><span className="option-letter">{option.id}</span><span>{option.text}</span>{feedback && option.id === feedback.correct_option && <b>✓</b>}</button>;
                 })}
               </div>
-              {feedback && <div className={feedback.correct ? "answer-feedback good" : "answer-feedback bad"}><strong>{feedback.correct ? "Muito bem! Resposta correta." : "Resposta incorreta. Alternativa " + feedback.correct_option + "."}</strong><p>{feedback.explanation}</p></div>}
+              {feedback && (quizMode === "simulado" ? <div className="answer-feedback good"><strong>Resposta registrada.</strong><p>O gabarito e as explicações serão liberados somente depois da finalização do simulado.</p></div> : <div className={feedback.correct ? "answer-feedback good" : "answer-feedback bad"}><strong>{feedback.correct ? "Muito bem! Resposta correta." : "Resposta incorreta. Alternativa " + feedback.correct_option + "."}</strong><p>{feedback.explanation}</p></div>)}
               <div className="quiz-actions"><span className="muted small-copy">Valor desta questão: {currentQuestion.points || 1} {(currentQuestion.points || 1) === 1 ? "ponto" : "pontos"}</span>{!feedback ? <button className="button button-primary" disabled={!selectedOption || busy} onClick={submitAnswer}>{busy ? "Corrigindo..." : "Confirmar resposta"}</button> : <button className="button button-primary" onClick={nextQuestion}>{quizIndex === quizQuestions.length - 1 ? "Ver resultado" : "Próxima questão"} →</button>}</div>
             </div>
           </section>
         )}
 
-        {view === "diagnostic" && !currentQuestion && (
+        {(view === "diagnostic" || view === "simulation") && !currentQuestion && (
           <section className="content-section"><div className="empty-state"><h2>Diagnóstico inicial</h2><p>O objetivo é identificar o que você já domina e o que precisa estudar desde o começo.</p><button className="button button-primary" onClick={startDiagnostic}>Iniciar diagnóstico</button></div></section>
         )}
 
         {view === "results" && quizResult && (
           <section className="content-section">
-            <div className="result-hero"><span className="eyebrow eyebrow-light">DIAGNÓSTICO CONCLUÍDO</span><div className="result-score">{quizResult.score.toFixed(1).replace(".", ",")}<small>/100</small></div><h1>Seu ponto de partida está registrado.</h1><p>O resultado é diagnóstico, não uma previsão de aprovação. Use-o para direcionar os próximos estudos.</p></div>
-            <div className="stat-grid result-stats"><StatCard label="Acertos" value={quizResult.correct + "/" + quizResult.total} helper="Questões respondidas" icon="✓" /><StatCard label="Nota ponderada" value={quizResult.score.toFixed(1).replace(".", ",")} helper="Escala normalizada de 0 a 100" icon="∑" /><StatCard label="Tempo utilizado" value={quizResult.minutes + " min"} helper="Duração aproximada" icon="◷" /><StatCard label="Próximo passo" value="Reforço" helper="Estudar os tópicos com erros" icon="↗" /></div>
-            <div className="panel result-next"><div><span className="eyebrow">RECOMENDAÇÃO</span><h2>Agora vamos transformar os erros em plano.</h2><p className="muted">Revise as explicações, abra a Sala de Estudos e avance pelos tópicos fundamentais. O sistema já salvou as respostas para acompanhar sua evolução.</p></div><button className="button button-primary" onClick={() => setView("study")}>Ir para sala de estudos →</button></div>
+            <div className="result-hero">
+              <span className="eyebrow eyebrow-light">{quizResult.mode === "simulado" ? "SIMULADO CONCLUÍDO" : "DIAGNÓSTICO CONCLUÍDO"}</span>
+              <div className="result-score">{Number(quizResult.score || 0).toFixed(1).replace(".", ",")}<small>/100</small></div>
+              <h1>{quizResult.mode === "simulado" ? "Resultado do simulado completo." : "Seu ponto de partida está registrado."}</h1>
+              <p>{quizResult.mode === "simulado" ? "Pontuação ponderada conforme o peso de cada disciplina no edital. As questões autorais ainda precisam de revisão humana independente." : "O resultado é diagnóstico, não uma previsão de aprovação. Use-o para direcionar os próximos estudos."}</p>
+            </div>
+            <div className="stat-grid result-stats">
+              <StatCard label="Acertos" value={quizResult.correct + "/" + quizResult.total} helper="Questões respondidas" icon="✓" />
+              <StatCard label="Nota ponderada" value={Number(quizResult.score || 0).toFixed(1).replace(".", ",")} helper="Escala normalizada de 0 a 100" icon="∑" />
+              <StatCard label="Tempo utilizado" value={quizResult.minutes + " min"} helper="Duração da avaliação" icon="◷" />
+              <StatCard label="Próximo passo" value="Reforço" helper="Estudar os tópicos com erros" icon="↗" />
+            </div>
+            {quizResult.subjects?.length > 0 && (
+              <div className="panel simulation-distribution">
+                <div className="panel-heading"><div><span className="eyebrow">RESULTADO POR DISCIPLINA</span><h2>Onde concentrar os estudos</h2></div></div>
+                {quizResult.subjects.map((item) => (
+                  <div className="simulation-subject-row" key={item.slug}>
+                    <div><strong>{item.name}</strong><small>{item.correct}/{item.answered} acertos · {item.raw_points}/{item.max_points} pontos</small></div>
+                    <div className="simulation-bar"><span style={{ width: item.percentage + "%" }} /></div>
+                    <b>{Number(item.percentage).toFixed(0)}%</b>
+                  </div>
+                ))}
+              </div>
+            )}
+            {quizResult.review?.length > 0 && (
+              <details className="panel answer-review">
+                <summary><strong>Ver gabarito comentado</strong><span>{quizResult.review.length} questões</span></summary>
+                <div className="answer-review-list">
+                  {quizResult.review.map((item, index) => (
+                    <article key={item.question_id} className="answer-review-item">
+                      <div className="answer-review-top"><strong>Questão {index + 1}</strong><span className={item.correct ? "review-correct" : "review-incorrect"}>{item.correct ? "Acertou" : "Errou"} · {item.points} pts</span></div>
+                      <h3>{item.statement}</h3>
+                      <p><strong>Sua resposta:</strong> {item.selected_option || "Em branco"} · <strong>Gabarito:</strong> {item.correct_option}</p>
+                      <p className="muted">{item.explanation}</p>
+                    </article>
+                  ))}
+                </div>
+              </details>
+            )}
+            <div className="panel result-next">
+              <div><span className="eyebrow">RECOMENDAÇÃO</span><h2>Agora vamos transformar os erros em plano.</h2><p className="muted">Revise as explicações, abra a Sala de Estudos e avance pelos tópicos fundamentais. O sistema já salvou as respostas para acompanhar sua evolução.</p></div>
+              <button className="button button-primary" onClick={() => setView("study")}>Ir para sala de estudos →</button>
+            </div>
           </section>
         )}
 

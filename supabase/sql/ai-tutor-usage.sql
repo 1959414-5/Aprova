@@ -1,4 +1,3 @@
--- Controle privado de uso do Professor IA (leitura e gravação apenas pela Edge Function).
 create table if not exists public.ai_tutor_usage (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -14,3 +13,7 @@ create index if not exists ai_tutor_usage_user_created_idx
 
 alter table public.ai_tutor_usage enable row level security;
 revoke all on table public.ai_tutor_usage from public, anon, authenticated;
+drop policy if exists "No direct access to tutor usage" on public.ai_tutor_usage;
+create policy "No direct access to tutor usage"
+  on public.ai_tutor_usage for all to anon, authenticated
+  using (false) with check (false);

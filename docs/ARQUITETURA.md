@@ -3,49 +3,55 @@
 ## Frontend
 - React + Vite; deploy estático pelo GitHub Pages.
 - Supabase JS usa somente URL e publishable key no navegador.
-- Auth por e-mail/senha.
-- Tema light/dark com preferência persistida no navegador.
-- Professor IA usa `supabase.functions.invoke("study-tutor")`; nenhuma chamada à OpenAI é feita diretamente pelo navegador.
+- Auth por e-mail/senha; tema light/dark persistente.
+- Professor IA chama apenas a Edge Function `study-tutor`, nunca a OpenAI diretamente.
 
 ## Banco
 - Catálogo: `exams`, `subjects`, `exam_subjects`, `topics`, `source_documents`, `questions`, `flashcards`.
 - Dados pessoais: `study_profiles`, `assessment_runs`, `question_attempts`, `study_plan_items`, `study_sessions`, `review_items`, `essay_submissions`, `flashcard_reviews`.
 - Aulas compartilhadas: `topic_lessons`.
 - Progresso individual por tópico: `topic_progress`.
-- Uso privado do tutor: `ai_tutor_usage` (RLS, sem acesso direto das roles anon/authenticated).
+- Uso privado do tutor: `ai_tutor_usage`.
+
+## Banco de questões
+Distribuição de 70 questões segundo o Anexo IV:
+- Língua Portuguesa: 10 questões / 10 pontos.
+- Matemática e Raciocínio Lógico: 10 / 10.
+- Informática: 10 / 10.
+- Conhecimentos Gerais e Atualidades: 10 / 10.
+- Conhecimentos Específicos: 30 / 60.
+
+As 70 questões atualmente carregadas são autorais. Todas têm `is_verified=false`; nenhuma foi aprovada por revisão humana independente. Não são itens oficiais de 2019 ou da prova de 2026.
 
 ## Conteúdo didático
-Cada aula publicada em `topic_lessons` usa JSON:
-- introduction
-- objectives[]
-- sections[{heading,text}]
-- worked_example{prompt,steps[],result}
-- summary[]
-- common_mistakes[]
-- practice
-
-O fonte editável está em `content/lessons.json`. Base: Anexo III do Edital nº 001/2026. Exemplos específicos usam o Anexo II.
+Cada aula publicada em `topic_lessons` contém introdução, objetivos, seções explicativas, exemplo resolvido, resumo, erros comuns e atividade. O fonte editável está em `content/lessons.json`. Base: Anexo III do Edital nº 001/2026; exemplos específicos também usam atribuições do cargo 061 no Anexo II.
 
 ## Tempo e progresso
-`topic_progress` controla `em_andamento`, `concluido` e `revisar`. `study_sessions` registra somente sessões salvas pelo candidato após o cronômetro. Abrir um tópico ou cancelar a sessão não conta tempo nem conclusão.
+`topic_progress` controla `em_andamento`, `concluido` e `revisar`. `study_sessions` registra somente sessões salvas pelo candidato depois do cronômetro. Abrir tópico ou cancelar sessão não conta tempo.
+
+## Diagnóstico e simulados
+- Diagnóstico: amostra curta de 22 questões, com 3 de cada disciplina geral e 10 específicas; permite correção comentada após cada resposta.
+- Simulado: exatamente 70 questões, distribuição oficial e pesos de 100 pontos; esconde o gabarito durante a execução.
+- `answer-question` valida o usuário e registra resposta via cliente privilegiado de servidor.
+- `finish-assessment` calcula nota ponderada no servidor, fecha a avaliação e só então libera revisão com gabarito e explicações.
+- Usuários não têm INSERT/UPDATE/DELETE direto em `question_attempts`, nem UPDATE/DELETE direto em `assessment_runs`. SELECT de tentativas de uma avaliação só é permitido depois que ela está encerrada.
 
 ## Professor IA
 A Edge Function `study-tutor`:
-- Exige JWT válido (`verify_jwt=true`).
-- Busca apenas a aula publicada e os metadados do tópico.
-- Limita texto e histórico recente.
-- Usa Responses API com `store=false`.
-- Lê `OPENAI_API_KEY` e, opcionalmente, `OPENAI_MODEL` apenas no servidor.
-- Limita cada usuário a 35 solicitações por dia, controladas em `ai_tutor_usage`.
-
-## Segurança do gabarito
-O navegador pode ler enunciados e alternativas, mas não `correct_option` ou `explanation`. `answer-question` consulta o gabarito no servidor e registra a tentativa. Nunca colocar secrets em variáveis VITE_.
+- JWT obrigatório.
+- Aula publicada e tópico carregados do banco.
+- Texto e histórico limitados.
+- Responses API com `store=false`.
+- Secret `OPENAI_API_KEY` somente no Supabase.
+- Limite inicial de 35 perguntas/dia/usuário, registrado em `ai_tutor_usage`.
 
 ## RLS
-`topic_lessons`: SELECT para authenticated somente quando `is_published=true`; anon sem leitura.
-`topic_progress`: CRUD para authenticated com `auth.uid()=user_id`.
-`ai_tutor_usage`: sem privilégios de acesso direto a anon/authenticated; somente a Edge Function administrativa registra e consulta os limites.
-As 15 tabelas originais também têm RLS habilitado.
+- `topic_lessons`: authenticated SELECT somente para publicadas.
+- `topic_progress`: CRUD por `auth.uid()=user_id`.
+- `ai_tutor_usage`: sem acesso direto a anon/authenticated; a Edge Function usa contexto administrativo.
+- `assessment_runs`: leitura e criação própria; finalização pelo servidor.
+- `question_attempts`: leitura própria apenas para questões fora de avaliação ou após encerramento; gravação por Edge Function.
+- As 15 tabelas originais também têm RLS habilitado.
 
 ## Próximos módulos
-Simulados completos de 70 questões; laboratório de redação; banco histórico de questões; revisões e flashcards.
+Revisão humana das questões; banco histórico 2019; Laboratório de Redação; revisões espaçadas e flashcards; refinamento do Professor IA.
