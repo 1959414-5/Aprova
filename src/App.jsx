@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 
 const EXAM_SLUG = "sbmg-2026-auxiliar-administrativo-financeiro";
@@ -34,6 +34,12 @@ function daysUntilExam() {
 }
 function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
+}
+function formatElapsed(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return [h, m, s].map((part) => String(part).padStart(2, "0")).join(":");
 }
 
 function AuthScreen({ theme, setTheme }) {
@@ -117,13 +123,54 @@ function AuthScreen({ theme, setTheme }) {
   );
 }
 
+function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onCancel, onClose }) {
+  const content = lesson?.content || {};
+  const hasActiveSession = activeSession?.topicId === topic.id;
+  const anotherSessionActive = Boolean(activeSession) && !hasActiveSession;
+  return (
+    <section className="lesson-panel" id="topic-lesson">
+      <div className="lesson-panel-head">
+        <div>
+          <span className="eyebrow">AULA DO EDITAL · {lesson?.source_basis || "Anexo III"}</span>
+          <h2>{topic.title}</h2>
+          <p className="muted">{content.introduction || "O conteúdo desta aula está sendo preparado."}</p>
+        </div>
+        <button className="icon-button lesson-close" onClick={onClose} title="Fechar aula">×</button>
+      </div>
+      {!lesson && <div className="notice notice-success">Esta aula ainda está em preparação. O tópico do edital já está cadastrado.</div>}
+      {lesson && <>
+        <div className="lesson-section"><span className="eyebrow">O QUE VOCÊ VAI APRENDER</span><ul className="lesson-objectives">{(content.objectives || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+        <div className="lesson-section"><span className="eyebrow">EXPLICAÇÃO</span><div className="lesson-article">{(content.sections || []).map((section, index) => <article key={index}><h3>{section.heading}</h3><p>{section.text}</p></article>)}</div></div>
+        {content.worked_example && <div className="lesson-example"><span className="eyebrow">EXEMPLO RESOLVIDO</span><h3>{content.worked_example.prompt}</h3><ol>{(content.worked_example.steps || []).map((step, index) => <li key={index}>{step}</li>)}</ol><p className="lesson-result"><strong>Conclusão:</strong> {content.worked_example.result}</p></div>}
+        <div className="lesson-two-column">
+          <div className="lesson-section lesson-summary"><span className="eyebrow">RESUMO PARA REVISÃO</span><ul>{(content.summary || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+          <div className="lesson-section lesson-mistakes"><span className="eyebrow">ERROS COMUNS</span><ul>{(content.common_mistakes || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+        </div>
+        {content.practice && <div className="lesson-practice"><span className="eyebrow">ATIVIDADE DE FIXAÇÃO</span><h3>{content.practice}</h3><p className="muted">Resolva no caderno ou explique a resposta com suas palavras. Depois, pratique questões do banco.</p></div>}
+      </>}
+      <div className="lesson-session-footer">
+        <div className="lesson-progress-copy"><span className="eyebrow">SEU PROGRESSO</span><strong>{progress?.status === "concluido" ? "Tópico concluído" : progress?.status === "em_andamento" ? "Em andamento" : "Ainda não iniciado"}</strong><small>Bloco planejado: {plannedMinutes} min</small></div>
+        {hasActiveSession ? <div className="lesson-timer-controls">
+          <div className="lesson-timer"><span className="session-live-dot" />{formatElapsed(elapsedSeconds)}</div>
+          <button className="button button-secondary" onClick={() => onFinish(false)} disabled={busy}>Salvar sessão</button>
+          <button className="button button-primary" onClick={() => onFinish(true)} disabled={busy}>Salvar e concluir tópico</button>
+          <button className="text-button" onClick={onCancel}>Cancelar sem salvar</button>
+        </div> : <div className="lesson-timer-controls">
+          <button className="button button-primary" onClick={onStart} disabled={busy || anotherSessionActive || !lesson}>{anotherSessionActive ? "Finalize a sessão atual" : "Iniciar sessão cronometrada"}</button>
+          <small className="muted">O cronômetro começa ao clicar. O tempo só entra no painel quando você salvar a sessão.</small>
+        </div>}
+      </div>
+    </section>
+  );
+}
+
 function StatCard({ label, value, helper, icon }) {
   return <div className="stat-card"><div className="stat-card-top"><span>{label}</span><i>{icon}</i></div><strong>{value}</strong><small>{helper}</small></div>;
 }
-function SubjectRow({ row, studiedTopicIds, onOpen }) {
+function SubjectRow({ row, completedTopicIds, onOpen }) {
   const subject = row.subjects || {};
   const topics = row.topics || [];
-  const count = topics.filter((topic) => studiedTopicIds.has(topic.id)).length;
+  const count = topics.filter((topic) => completedTopicIds.has(topic.id)).length;
   const pct = topics.length ? Math.round(count / topics.length * 100) : 0;
   return (
     <button className="subject-row" onClick={onOpen}>
@@ -158,7 +205,14 @@ export default function App() {
   const [profile, setProfile] = useState(null);
   const [attempts, setAttempts] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [topicLessons, setTopicLessons] = useState([]);
+  const [topicProgressRows, setTopicProgressRows] = useState([]);
   const [expandedSubject, setExpandedSubject] = useState(null);
+  const [selectedTopic, setSelectedTopic] = useState(null);
+  const [plannedMinutes, setPlannedMinutes] = useState(40);
+  const [activeSession, setActiveSession] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const diagnosticStartLock = useRef(false);
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [quizRunId, setQuizRunId] = useState(null);
   const [quizIndex, setQuizIndex] = useState(0);
@@ -174,6 +228,17 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem("aprova-theme", theme); } catch { /* armazenamento indisponível */ }
   }, [theme]);
+
+  useEffect(() => {
+    if (!activeSession) {
+      setElapsedSeconds(0);
+      return undefined;
+    }
+    const updateElapsed = () => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - activeSession.startedAt) / 1000)));
+    updateElapsed();
+    const interval = window.setInterval(updateElapsed, 1000);
+    return () => window.clearInterval(interval);
+  }, [activeSession]);
 
   useEffect(() => {
     if (!supabase) {
@@ -232,11 +297,23 @@ export default function App() {
         .select("id, duration_minutes, topic_id, study_method, studied_at").eq("user_id", currentUser.id).order("studied_at", { ascending: false });
       if (sessionsError) throw sessionsError;
 
+      const { data: lessonsData, error: lessonsError } = await supabase.from("topic_lessons")
+        .select("topic_id, title, content, source_basis, version")
+        .eq("is_published", true);
+      if (lessonsError) throw lessonsError;
+
+      const { data: progressData, error: progressError } = await supabase.from("topic_progress")
+        .select("topic_id, status, started_at, completed_at, last_studied_at, updated_at")
+        .eq("user_id", currentUser.id);
+      if (progressError) throw progressError;
+
       setExam(examData);
       setProfile(activeProfile);
       setSubjectRows((subjectsData || []).map((row) => ({ ...row, topics: [...(row.topics || [])].sort((a, b) => a.display_order - b.display_order) })));
       setAttempts(attemptsData || []);
       setSessions(sessionsData || []);
+      setTopicLessons(lessonsData || []);
+      setTopicProgressRows(progressData || []);
     } catch (err) {
       setNotice(err.message || "Não foi possível carregar seus dados.");
     } finally {
@@ -249,31 +326,96 @@ export default function App() {
   }, [user?.id, loadDashboard]);
 
   const allTopics = useMemo(() => subjectRows.flatMap((row) => row.topics || []), [subjectRows]);
-  const studiedTopicIds = useMemo(() => new Set(sessions.filter((item) => item.topic_id).map((item) => item.topic_id)), [sessions]);
-  const completedTopics = studiedTopicIds.size;
+  const topicProgressById = useMemo(() => new Map(topicProgressRows.map((item) => [item.topic_id, item])), [topicProgressRows]);
+  const completedTopicIds = useMemo(() => new Set(topicProgressRows.filter((item) => item.status === "concluido").map((item) => item.topic_id)), [topicProgressRows]);
+  const inProgressTopicIds = useMemo(() => new Set(topicProgressRows.filter((item) => item.status === "em_andamento").map((item) => item.topic_id)), [topicProgressRows]);
+  const completedTopics = completedTopicIds.size;
   const topicProgress = allTopics.length ? Math.round((completedTopics / allTopics.length) * 100) : 0;
   const totalStudyMinutes = sessions.reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
+  const selectedLesson = selectedTopic ? topicLessons.find((item) => item.topic_id === selectedTopic.id) : null;
   const correctAnswers = attempts.filter((item) => item.is_correct).length;
   const accuracy = attempts.length ? Math.round((correctAnswers / attempts.length) * 100) : 0;
   const daysLeft = daysUntilExam();
   const currentQuestion = quizQuestions[quizIndex];
 
-  async function registerStudy(minutes, topic = null, method = "teoria") {
-    if (!user) return;
-    const { error } = await supabase.from("study_sessions").insert({
-      user_id: user.id,
-      topic_id: topic?.id || null,
-      duration_minutes: minutes,
-      study_method: method,
-      notes: topic ? "Estudo registrado: " + topic.title : "Sessão livre de estudo.",
+  function openLesson(topic) {
+    if (activeSession && activeSession.topicId !== topic.id) {
+      setNotice("Finalize ou cancele a sessão atual antes de abrir outro tópico.");
+      return;
+    }
+    setSelectedTopic(topic);
+    setNotice("");
+  }
+
+  async function startTopicSession(topic) {
+    if (!user || activeSession) return;
+    setActiveSession({
+      topicId: topic.id,
+      topicTitle: topic.title,
+      method: "teoria",
+      startedAt: Date.now(),
+      plannedMinutes,
     });
-    if (error) { setNotice(error.message); return; }
-    setNotice("Sessão de " + minutes + " minutos registrada.");
+    setNotice("Sessão iniciada. O tempo só será registrado quando você finalizar.");
+  }
+
+  async function finishTopicSession(markCompleted = false) {
+    if (!user || !activeSession) return;
+    const seconds = Math.max(0, Math.floor((Date.now() - activeSession.startedAt) / 1000));
+    if (seconds < 60) {
+      setNotice("Para registrar uma sessão, estude por pelo menos 1 minuto. Você também pode cancelar sem salvar.");
+      return;
+    }
+    const durationMinutes = Math.max(1, Math.round(seconds / 60));
+    const finishedAt = new Date().toISOString();
+    const { error: sessionError } = await supabase.from("study_sessions").insert({
+      user_id: user.id,
+      topic_id: activeSession.topicId,
+      duration_minutes: durationMinutes,
+      study_method: activeSession.method,
+      studied_at: new Date(activeSession.startedAt).toISOString(),
+      notes: "Sessão cronometrada: " + (activeSession.topicTitle || "Estudo livre"),
+    });
+    if (sessionError) {
+      setNotice(sessionError.message || "Não foi possível salvar a sessão.");
+      return;
+    }
+
+    if (activeSession.topicId) {
+      const existing = topicProgressById.get(activeSession.topicId);
+      const nextStatus = markCompleted ? "concluido" : (existing?.status === "concluido" ? "concluido" : "em_andamento");
+      const { error: progressError } = await supabase.from("topic_progress").upsert({
+        user_id: user.id,
+        topic_id: activeSession.topicId,
+        status: nextStatus,
+        started_at: existing?.started_at || new Date(activeSession.startedAt).toISOString(),
+        completed_at: markCompleted ? finishedAt : (existing?.completed_at || null),
+        last_studied_at: finishedAt,
+        updated_at: finishedAt,
+      }, { onConflict: "user_id,topic_id" });
+      if (progressError) {
+        setNotice("A sessão foi salva, mas não foi possível atualizar o progresso: " + progressError.message);
+        setActiveSession(null);
+        await loadDashboard(user);
+        return;
+      }
+    }
+
+    setActiveSession(null);
+    setNotice(markCompleted && activeSession.topicId
+      ? "Sessão salva e tópico concluído."
+      : "Sessão de " + durationMinutes + " minuto(s) salva. O tópico continua em andamento.");
     await loadDashboard(user);
   }
 
+  function cancelTopicSession() {
+    setActiveSession(null);
+    setNotice("Sessão cancelada. Nenhum tempo foi registrado.");
+  }
+
   async function startDiagnostic() {
-    if (!exam || !user) return;
+    if (!exam || !user || diagnosticStartLock.current) return;
+    diagnosticStartLock.current = true;
     setBusy(true);
     setNotice("");
     setFeedback(null);
@@ -307,8 +449,33 @@ export default function App() {
     } catch (err) {
       setNotice(err.message || "Não foi possível iniciar o diagnóstico.");
     } finally {
+      diagnosticStartLock.current = false;
       setBusy(false);
     }
+  }
+
+  async function leaveDiagnostic() {
+    if (quizRunId && user) {
+      if (responses.length === 0) {
+        const { error } = await supabase.from("assessment_runs")
+          .delete().eq("id", quizRunId).eq("user_id", user.id);
+        if (error) setNotice("Não foi possível descartar o diagnóstico vazio: " + error.message);
+      } else {
+        const { error } = await supabase.from("assessment_runs").update({
+          finished_at: new Date().toISOString(),
+          metadata: { origin: "banco_autoral_inicial", partial: true, abandoned: true },
+        }).eq("id", quizRunId).eq("user_id", user.id);
+        if (error) setNotice("Não foi possível registrar a saída do diagnóstico: " + error.message);
+      }
+    }
+    setQuizRunId(null);
+    setQuizQuestions([]);
+    setQuizIndex(0);
+    setSelectedOption("");
+    setFeedback(null);
+    setResponses([]);
+    setView("dashboard");
+    if (user) await loadDashboard(user);
   }
 
   async function submitAnswer() {
@@ -419,6 +586,14 @@ export default function App() {
           </div>
         </header>
         {notice && <div className="global-notice"><span>{notice}</span><button onClick={() => setNotice("")}>×</button></div>}
+        {activeSession && (
+          <div className="active-session-strip">
+            <div><span className="session-live-dot" /><strong>Estudo em andamento</strong><small>{activeSession.topicTitle}</small></div>
+            <b>{formatElapsed(elapsedSeconds)}</b>
+            <button className="text-button" onClick={() => { setView("study"); if (activeSession.topicId) setSelectedTopic(allTopics.find((item) => item.id === activeSession.topicId) || null); }}>Voltar ao estudo</button>
+            <button className="text-button" onClick={() => finishTopicSession(false)}>Finalizar</button>
+          </div>
+        )}
         {busy && <div className="busy-line"><span /></div>}
 
         {view === "dashboard" && (
@@ -442,15 +617,15 @@ export default function App() {
             <div className="dashboard-grid">
               <div className="panel">
                 <div className="panel-heading"><div><span className="eyebrow">TRILHA DE ESTUDOS</span><h2>Disciplinas do edital</h2></div><button className="text-button" onClick={() => setView("study")}>Ver conteúdo →</button></div>
-                <div className="subject-list">{subjectRows.map((row) => <SubjectRow key={row.id} row={row} studiedTopicIds={studiedTopicIds} onOpen={() => { setExpandedSubject(row.id); setView("study"); }} />)}</div>
+                <div className="subject-list">{subjectRows.map((row) => <SubjectRow key={row.id} row={row} completedTopicIds={completedTopicIds} onOpen={() => { setExpandedSubject(row.id); setView("study"); }} />)}</div>
               </div>
               <div className="panel plan-panel">
                 <div className="panel-heading"><div><span className="eyebrow">PLANO FLEXÍVEL</span><h2>Escolha o tamanho do bloco</h2></div></div>
-                <p className="muted small-copy">Ele trabalha das 07:30 às 17:30. Em dias úteis, a meta é manter o ritmo sem exigir uma noite inteira de estudos.</p>
+                <p className="muted small-copy">Ele trabalha das 07:30 às 17:30. Escolha uma duração e depois abra um tópico para iniciar uma sessão cronometrada. O tempo só será salvo ao finalizar.</p>
                 <div className="study-options">
-                  <button onClick={() => registerStudy(15, null, "revisao")}><strong>15 min</strong><span>Dia corrido</span></button>
-                  <button onClick={() => registerStudy(40, null, "teoria")}><strong>40 min</strong><span>Rotina normal</span></button>
-                  <button onClick={() => registerStudy(90, null, "questoes")}><strong>90 min</strong><span>Bloco de fim de semana</span></button>
+                  <button className={plannedMinutes === 15 ? "selected" : ""} onClick={() => { setPlannedMinutes(15); setView("study"); }}><strong>15 min</strong><span>Dia corrido</span></button>
+                  <button className={plannedMinutes === 40 ? "selected" : ""} onClick={() => { setPlannedMinutes(40); setView("study"); }}><strong>40 min</strong><span>Rotina normal</span></button>
+                  <button className={plannedMinutes === 90 ? "selected" : ""} onClick={() => { setPlannedMinutes(90); setView("study"); }}><strong>90 min</strong><span>Bloco de fim de semana</span></button>
                 </div>
                 <div className="plan-tip"><span>✦</span><p><strong>Constância vale mais que maratonas.</strong><br />Uma sessão curta com atenção e exercícios é melhor do que tentar compensar vários dias de uma vez.</p></div>
                 <button className="button button-primary button-wide" onClick={startDiagnostic}>Começar pelo diagnóstico</button>
@@ -461,13 +636,13 @@ export default function App() {
 
         {view === "study" && (
           <section className="content-section">
-            <div className="page-heading"><span className="eyebrow">ANEXO III · EDITAL 001/2026</span><h1>Sala de estudos</h1><p className="muted">Comece pela explicação de cada tópico, faça anotações e registre o estudo quando terminar.</p></div>
-            <div className="study-weight-note"><strong>Distribuição da prova objetiva</strong><span>Conhecimentos Específicos valem 60 pontos. As outras quatro disciplinas valem 10 pontos cada.</span></div>
+            <div className="page-heading"><span className="eyebrow">ANEXO III · EDITAL 001/2026</span><h1>Sala de estudos</h1><p className="muted">Aulas organizadas pelo edital, com explicações desde o básico, exemplos e atividades de fixação.</p></div>
+            <div className="study-weight-note"><strong>Bloco selecionado: {plannedMinutes} minutos</strong><span>Abra uma aula e inicie o cronômetro. O tempo só será registrado quando salvar a sessão.</span></div>
             <div className="study-subject-grid">
               {subjectRows.map((row) => {
                 const subject = row.subjects || {};
                 const topics = row.topics || [];
-                const studied = topics.filter((topic) => studiedTopicIds.has(topic.id)).length;
+                const studied = topics.filter((topic) => completedTopicIds.has(topic.id)).length;
                 const open = expandedSubject === row.id;
                 return (
                   <article className={open ? "subject-card expanded" : "subject-card"} key={row.id}>
@@ -481,8 +656,20 @@ export default function App() {
                       {topics.map((topic, index) => (
                         <div className="topic-item" key={topic.id}>
                           <div className="topic-index">{String(index + 1).padStart(2, "0")}</div>
-                          <div className="topic-main"><strong>{topic.title}</strong><p>{topic.syllabus_text}</p><div className="topic-meta"><span>{topic.estimated_minutes} min sugeridos</span><span className={"priority priority-" + topic.priority}>{PRIORITY_LABELS[topic.priority] || "Importante"}</span>{topic.source_page && <span>{topic.source_page}</span>}</div></div>
-                          <button className={studiedTopicIds.has(topic.id) ? "topic-done done" : "topic-done"} onClick={() => registerStudy(25, topic, "teoria")} title="Registrar 25 minutos de estudo">{studiedTopicIds.has(topic.id) ? "✓" : "＋"}</button>
+                          <div className="topic-main">
+                            <strong>{topic.title}</strong>
+                            <p>{topic.syllabus_text}</p>
+                            <div className="topic-meta">
+                              <span>{topic.estimated_minutes} min de referência</span>
+                              <span className={"priority priority-" + topic.priority}>{PRIORITY_LABELS[topic.priority] || "Importante"}</span>
+                              <span className={completedTopicIds.has(topic.id) ? "topic-status complete" : inProgressTopicIds.has(topic.id) ? "topic-status active" : "topic-status"}>
+                                {completedTopicIds.has(topic.id) ? "Concluído" : inProgressTopicIds.has(topic.id) ? "Em andamento" : "Não iniciado"}
+                              </span>
+                            </div>
+                          </div>
+                          <button className="button button-secondary topic-open-button" onClick={() => openLesson(topic)}>
+                            Abrir aula →
+                          </button>
                         </div>
                       ))}
                     </div>}
@@ -490,12 +677,27 @@ export default function App() {
                 );
               })}
             </div>
+            {selectedTopic && (
+              <TopicLessonPanel
+                topic={selectedTopic}
+                lesson={selectedLesson}
+                progress={topicProgressById.get(selectedTopic.id)}
+                plannedMinutes={plannedMinutes}
+                activeSession={activeSession}
+                elapsedSeconds={elapsedSeconds}
+                busy={busy}
+                onStart={() => startTopicSession(selectedTopic)}
+                onFinish={(complete) => finishTopicSession(complete)}
+                onCancel={cancelTopicSession}
+                onClose={() => setSelectedTopic(null)}
+              />
+            )}
           </section>
         )}
 
         {view === "diagnostic" && currentQuestion && (
           <section className="content-section quiz-section">
-            <div className="quiz-topline"><button className="back-button" onClick={() => { setView("dashboard"); setFeedback(null); }}>← Sair do diagnóstico</button><span>DIAGNÓSTICO INICIAL · QUESTÕES AUTORAIS</span><strong>{quizIndex + 1} <small>/ {quizQuestions.length}</small></strong></div>
+            <div className="quiz-topline"><button className="back-button" onClick={leaveDiagnostic}>← Sair do diagnóstico</button><span>DIAGNÓSTICO INICIAL · QUESTÕES AUTORAIS</span><strong>{quizIndex + 1} <small>/ {quizQuestions.length}</small></strong></div>
             <div className="quiz-progress"><span style={{ width: ((quizIndex + (feedback ? 1 : 0)) / quizQuestions.length * 100) + "%" }} /></div>
             <div className="quiz-card">
               <div className="quiz-meta"><span className="eyebrow">{getSubjectName(subjectRows, currentQuestion.exam_subject_id)}</span><span className={"difficulty difficulty-" + currentQuestion.difficulty}>{currentQuestion.difficulty}</span></div>
@@ -529,7 +731,7 @@ export default function App() {
           <section className="content-section">
             <div className="page-heading"><span className="eyebrow">ACOMPANHAMENTO</span><h1>Meu desempenho</h1><p className="muted">Seus registros de estudo e questões respondidas ficam salvos na sua conta.</p></div>
             <div className="stat-grid"><StatCard label="Aproveitamento" value={accuracy + "%"} helper={correctAnswers + " acertos em " + attempts.length + " respostas"} icon="↗" /><StatCard label="Tópicos estudados" value={String(completedTopics)} helper={"De " + allTopics.length + " tópicos cadastrados"} icon="▤" /><StatCard label="Horas acumuladas" value={(totalStudyMinutes / 60).toFixed(1).replace(".", ",") + "h"} helper="Sessões registradas" icon="◷" /><StatCard label="Questões" value={String(attempts.length)} helper="Tentativas registradas" icon="✓" /></div>
-            <div className="panel performance-panel"><h2>Progresso do edital</h2>{subjectRows.map((row) => { const topics = row.topics || []; const done = topics.filter((topic) => studiedTopicIds.has(topic.id)).length; const pct = topics.length ? Math.round(done / topics.length * 100) : 0; return <div className="performance-row" key={row.id}><div><strong>{row.subjects?.name}</strong><span>{done} de {topics.length} tópicos</span></div><div className="wide-progress"><span style={{ width: pct + "%" }} /></div><b>{pct}%</b></div>; })}</div>
+            <div className="panel performance-panel"><h2>Progresso do edital</h2>{subjectRows.map((row) => { const topics = row.topics || []; const done = topics.filter((topic) => completedTopicIds.has(topic.id)).length; const pct = topics.length ? Math.round(done / topics.length * 100) : 0; return <div className="performance-row" key={row.id}><div><strong>{row.subjects?.name}</strong><span>{done} de {topics.length} tópicos</span></div><div className="wide-progress"><span style={{ width: pct + "%" }} /></div><b>{pct}%</b></div>; })}</div>
           </section>
         )}
         <footer className="app-footer"><span>APROVA · SBMG 2026</span><span>Conteúdo organizado a partir do edital de abertura. Questões autorais identificadas.</span></footer>

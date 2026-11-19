@@ -1,30 +1,39 @@
 # Arquitetura técnica
 
-## Aplicação
-- Vite 8 e React 19.
-- Supabase JS usa somente URL do projeto e publishable key no navegador.
-- Autenticação por e-mail e senha.
+## Frontend
+- React + Vite; deploy estático pelo GitHub Pages.
+- Supabase JS usa somente URL e publishable key no navegador.
+- Auth por e-mail/senha.
+- Tema light/dark com preferência persistida no navegador.
 
 ## Banco
-- Catálogo compartilhado: exams, subjects, exam_subjects, topics, source_documents, questions e flashcards.
-- Dados individuais: study_profiles, assessment_runs, question_attempts, study_plan_items, study_sessions, review_items, essay_submissions e flashcard_reviews.
-- RLS está habilitado nas 15 tabelas públicas.
-- Registros de estudo são isolados por auth.uid() = user_id.
+- Catálogo: `exams`, `subjects`, `exam_subjects`, `topics`, `source_documents`, `questions`, `flashcards`.
+- Dados pessoais: `study_profiles`, `assessment_runs`, `question_attempts`, `study_plan_items`, `study_sessions`, `review_items`, `essay_submissions`, `flashcard_reviews`.
+- Aulas compartilhadas: `topic_lessons`.
+- Progresso individual por tópico: `topic_progress`.
 
-## Gabarito
-O navegador pode ler somente enunciados e alternativas da tabela questions. Não recebe permissão para correct_option, explanation ou reviewer_notes.
+## Conteúdo didático
+Cada aula publicada em `topic_lessons` usa JSON:
+- introduction
+- objectives[]
+- sections[{heading,text}]
+- worked_example{prompt,steps[],result}
+- summary[]
+- common_mistakes[]
+- practice
 
-A Edge Function answer-question exige usuário autenticado. Após validar a sessão, consulta o gabarito no servidor, grava a tentativa no contexto RLS do candidato e retorna a correção daquela resposta. Nenhuma chave secret/service-role deve entrar no Vite, no GitHub ou no navegador.
+O fonte editável está em `content/lessons.json`. Base: Anexo III do Edital nº 001/2026. Exemplos de rotinas específicas também usam as atribuições do cargo 061 no Anexo II.
 
-## Variáveis locais
-- VITE_SUPABASE_URL
-- VITE_SUPABASE_PUBLISHABLE_KEY
+## Tempo e progresso
+`topic_progress` controla `em_andamento`, `concluido` e `revisar`. `study_sessions` registra somente sessões salvas pelo candidato, após o cronômetro. Abrir um tópico ou cancelar a sessão não conta tempo nem conclusão.
+
+## Segurança do gabarito
+O navegador pode ler enunciados e alternativas da tabela `questions`, mas não `correct_option` ou `explanation`. A Edge Function `answer-question` exige usuário autenticado, consulta gabarito no servidor e registra a tentativa. Não levar secrets para variáveis VITE_.
+
+## RLS
+`topic_lessons`: SELECT para authenticated somente quando `is_published=true`; anon sem leitura.
+`topic_progress`: CRUD para authenticated com `auth.uid()=user_id` em policies.
+As demais 15 tabelas originais também têm RLS habilitado.
 
 ## Próximos módulos
-1. Professor IA ligado à API de modelo por função server-side.
-2. Correção formativa de redação pelos quatro critérios do edital.
-3. Banco histórico da prova SBMG 2019, após transcrição e conferência.
-4. Simulados completos com montagem ponderada e relatório por assunto.
-5. Revisão espaçada e flashcards.
-
-Não desabilitar RLS. Novas tabelas em public precisam de RLS e políticas específicas antes de conceder acesso à Data API.
+Professor IA por Edge Function com segredo do provedor armazenado no Supabase; simulados completos de 70 questões; redação; banco histórico de questões; revisões e flashcards.

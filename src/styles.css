@@ -372,3 +372,245 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 .auth-form-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
 .auth-form-head .mobile-brand { margin: 0; }
 .auth-form-head .theme-toggle { margin-left: auto; }
+
+
+/* Estudo acompanhado: o tempo só é persistido ao salvar uma sessão real. */
+.button-secondary {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--line);
+  box-shadow: var(--shadow-out-sm);
+}
+.button-secondary:hover {
+  border-color: var(--mint-strong);
+  box-shadow: var(--shadow-mint);
+}
+.study-options button.selected {
+  border-color: var(--mint-strong);
+  box-shadow: var(--shadow-mint);
+  background: var(--surface);
+}
+.active-session-strip {
+  margin: 12px 42px -12px;
+  padding: 11px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.active-session-strip > div:first-child {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 10px auto;
+  align-items: center;
+  column-gap: 8px;
+}
+.active-session-strip > div:first-child strong { font-size: 11px; }
+.active-session-strip > div:first-child small {
+  grid-column: 2;
+  color: var(--muted);
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.active-session-strip > b {
+  font: 800 15px "Manrope", sans-serif;
+  color: var(--mint-deep);
+  font-variant-numeric: tabular-nums;
+}
+.session-live-dot {
+  width: 8px;
+  height: 8px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--mint-strong);
+  box-shadow: 0 0 0 3px rgba(80,190,150,.14), 0 0 10px var(--focus);
+}
+.topic-status {
+  padding: 4px 8px;
+  border-radius: 99px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-weight: 700;
+}
+.topic-status.active {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+.topic-status.complete {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+.topic-open-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 10px;
+}
+.lesson-panel {
+  margin-top: 18px;
+  padding: clamp(17px, 3vw, 28px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-out);
+}
+.lesson-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+}
+.lesson-panel-head h2 {
+  font-size: clamp(19px, 2.4vw, 25px);
+  margin: 8px 0;
+}
+.lesson-panel-head p {
+  max-width: 850px;
+  line-height: 1.7;
+  font-size: 12px;
+  margin: 0;
+}
+.lesson-section { margin-top: 19px; }
+.lesson-objectives, .lesson-summary ul, .lesson-mistakes ul {
+  padding-left: 19px;
+  margin: 10px 0 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.lesson-article {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.lesson-article article {
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: 13px;
+  padding: 15px;
+}
+.lesson-article h3, .lesson-example h3, .lesson-practice h3 {
+  font: 800 13px "Manrope", sans-serif;
+  margin: 0 0 8px;
+}
+.lesson-article p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.75;
+}
+.lesson-example {
+  margin-top: 18px;
+  padding: 17px;
+  border: 1px solid rgba(83,164,133,.28);
+  border-radius: 14px;
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+.lesson-example h3 { margin-top: 9px; line-height: 1.6; }
+.lesson-example ol {
+  padding-left: 21px;
+  font-size: 11px;
+  line-height: 1.75;
+}
+.lesson-result {
+  margin: 10px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.lesson-two-column {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 13px;
+}
+.lesson-summary, .lesson-mistakes {
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 14px;
+  background: var(--surface-2);
+}
+.lesson-practice {
+  margin-top: 15px;
+  padding: 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 13px;
+}
+.lesson-practice h3 {
+  margin-top: 9px;
+  line-height: 1.65;
+}
+.lesson-practice p {
+  font-size: 10px;
+  margin: 7px 0 0;
+}
+.lesson-session-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+  padding-top: 18px;
+}
+.lesson-progress-copy {
+  display: grid;
+  gap: 5px;
+}
+.lesson-progress-copy strong {
+  font: 800 14px "Manrope", sans-serif;
+}
+.lesson-progress-copy small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.lesson-timer-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.lesson-timer-controls > small {
+  width: 100%;
+  text-align: right;
+  max-width: 390px;
+  line-height: 1.5;
+}
+.lesson-timer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 800 17px "Manrope", sans-serif;
+  color: var(--mint-deep);
+  font-variant-numeric: tabular-nums;
+  margin-right: 5px;
+}
+@media (max-width: 900px) {
+  .active-session-strip { margin: 10px 25px -12px; }
+}
+@media (max-width: 720px) {
+  .active-session-strip {
+    margin: 9px 15px -10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .active-session-strip > div:first-child { min-width: 60%; }
+  .active-session-strip > b { margin-left: auto; }
+  .active-session-strip .text-button { font-size: 10px; }
+  .lesson-article, .lesson-two-column { grid-template-columns: 1fr; }
+  .lesson-session-footer { align-items: stretch; flex-direction: column; }
+  .lesson-timer-controls { justify-content: stretch; }
+  .lesson-timer-controls .button { flex: 1 1 100%; }
+  .lesson-timer-controls > small { text-align: left; }
+  .topic-item { grid-template-columns: 20px minmax(0,1fr); }
+  .topic-open-button { grid-column: 2; justify-self: start; }
+}
