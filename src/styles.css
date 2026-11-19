@@ -1791,3 +1791,11 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   .essay-practice-grid, .essay-rubric-grid { grid-template-columns: 1fr; }
   .essay-course-next { align-items: flex-start; flex-direction: column; }
 }
+
+
+.essay-edital-note {
+  margin: -3px 0 16px;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.essay-edital-note strong { color: var(--success-text); }
