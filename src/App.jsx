@@ -587,7 +587,7 @@ export default function App() {
         supabase.from("assessment_runs").select("id, started_at, question_count")
           .eq("user_id", currentUser.id).eq("exam_id", examData.id).eq("run_type", "diagnostico")
           .is("finished_at", null).order("started_at", { ascending: false }).limit(1).maybeSingle(),
-        supabase.from("study_profiles").select("user_id, experience_level, availability_mode, work_schedule, weekday_min_minutes, weekday_target_minutes, weekend_target_minutes, target_exam_date, preferred_devices")
+        supabase.from("study_profiles").select("*")
           .eq("user_id", currentUser.id).maybeSingle(),
         supabase.from("exam_subjects").select("id, display_order, question_count, total_points, points_per_question, subjects(id, slug, name), topics(id, slug, title, syllabus_text, priority, estimated_minutes, display_order)")
           .eq("exam_id", examData.id).order("display_order"),
