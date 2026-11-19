@@ -2205,3 +2205,9 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   .plan-notification-button { padding-left: 0; }
   .active-session-timer { min-width: 96px; }
 }
+
+
+/* Topbar: controle de tema compacto, somente ícone */
+.topbar-right .theme-toggle { width: 36px; height: 36px; padding: 0; justify-content: center; gap: 0; }
+.topbar-right .theme-toggle small { display: none; }
+.topbar-right .theme-toggle span { font-size: 18px; }
