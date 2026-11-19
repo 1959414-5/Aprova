@@ -24,7 +24,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
 
     const { data: run, error: runError } = await ctx.supabaseAdmin
       .from("assessment_runs")
-      .select("id, user_id, exam_id, run_type, title, question_count, finished_at, started_at")
+      .select("id, user_id, exam_id, run_type, title, question_count, finished_at, started_at, metadata")
       .eq("id", runId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -47,6 +47,20 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
     const responseRows = attempts ?? [];
     const expected = Number(run.question_count ?? 0);
     const isComplete = responseRows.length === expected && expected > 0;
+
+    if (run.run_type === "diagnostico") {
+      const questionIds = Array.isArray(run.metadata?.question_ids) ? run.metadata.question_ids : [];
+      if (
+        expected !== 22 ||
+        questionIds.length !== 22 ||
+        new Set(questionIds).size !== 22 ||
+        responseRows.some((attempt) => !questionIds.includes(attempt.question_id))
+      ) {
+        return Response.json({
+          error: "A sequência salva deste diagnóstico está incompleta ou inconsistente. A tentativa foi preservada para análise.",
+        }, { status: 409, headers: corsHeaders });
+      }
+    }
 
     if (responseRows.length === 0 && body.abandon === true) {
       const abandonedAt = new Date().toISOString();
