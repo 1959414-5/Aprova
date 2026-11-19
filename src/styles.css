@@ -2324,3 +2324,11 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 .lesson-visual-node:last-child i { display:none; }
 .lesson-visual-aid > p { margin:13px 0 0; color:var(--muted); font-size:11px; line-height:1.6; }
 @media(max-width:600px){ .lesson-visual-aid {padding:15px;} .lesson-visual-node {grid-template-columns:1fr; gap:5px;} .lesson-visual-node i {left:14px;} }
+
+
+.lesson-hook-card,.lesson-challenge-card { margin:16px 0; padding:18px 20px; border-radius:16px; border:1px solid var(--line); background:var(--surface-raised); box-shadow:var(--shadow-out-sm); }
+.lesson-hook-card { border-left:4px solid var(--mint-strong); }
+.lesson-hook-card p { margin:9px 0 0; font-size:13px; line-height:1.65; color:var(--text); }
+.lesson-challenge-card h3 { font-size:14px; line-height:1.55; margin:9px 0 12px; }
+.lesson-challenge-answer { margin-top:12px; padding:13px; border-radius:12px; background:var(--surface-2); border:1px solid var(--line); }
+.lesson-challenge-answer p { margin:6px 0 0; font-size:12px; line-height:1.65; color:var(--text-soft); }
