@@ -1476,7 +1476,7 @@ export default function App() {
             <button
               className={view === "tutor" ? "topbar-tutor-button active" : "topbar-tutor-button"}
               type="button"
-              onClick={() => setView("tutor")}
+              onClick={() => requestAssessmentExit("tutor")}
               aria-label="Abrir Professor IA"
               title="Professor IA"
             >
