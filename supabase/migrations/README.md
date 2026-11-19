@@ -6,4 +6,4 @@ O projeto remoto contém 15 tabelas com RLS habilitado, 2 concursos cadastrados,
 
 A seed inicial de questões autorais está em supabase/seed/diagnostic_questions.sql. Ela é idempotente e só adiciona questões que ainda não existem.
 
-A migração `20261119_lesson_study_sessions_per_lesson.sql` cria `lesson_study_sessions`, com uma linha por sessão, separação entre tópicos e aulas de redação, duração exata em segundos, estado de sessão e RLS por usuário. Ao fazer alterações futuras, crie novas migrações SQL versionadas; não edite migrações já aplicadas no projeto remoto.
+A migração `20261119_lesson_study_sessions_per_lesson.sql` cria `lesson_study_sessions`, com uma linha por sessão, separação entre tópicos e aulas de redação, duração exata em segundos, estado de sessão e RLS por usuário. A migração `20261119_study_plan_goal_tracking.sql` registra a meta em minutos e o instante em que ela é atingida, sem encerrar a sessão automaticamente. Ao fazer alterações futuras, crie novas migrações SQL versionadas; não edite migrações já aplicadas no projeto remoto.
