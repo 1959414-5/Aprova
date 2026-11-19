@@ -448,6 +448,28 @@ export default function App() {
   const [pendingDiagnosticResume, setPendingDiagnosticResume] = useState(null);
   const user = session?.user ?? null;
 
+  useEffect(() => { try { localStorage.setItem("aprova-current-view", view); } catch { /* storage unavailable */ } }, [view]);
+  useEffect(() => {
+    const save = () => {
+      try {
+        const positions = JSON.parse(sessionStorage.getItem("aprova-scroll-positions") || "{}");
+        positions[view] = window.scrollY;
+        sessionStorage.setItem("aprova-scroll-positions", JSON.stringify(positions));
+      } catch { /* storage unavailable */ }
+    };
+    window.addEventListener("scroll", save, { passive: true });
+    save();
+    return () => window.removeEventListener("scroll", save);
+  }, [view]);
+  useEffect(() => {
+    if (booting) return;
+    let saved = 0;
+    try {
+      const positions = JSON.parse(sessionStorage.getItem("aprova-scroll-positions") || "{}");
+      saved = Number(positions[view] || 0);
+    } catch { /* storage unavailable */ }
+    requestAnimationFrame(() => window.scrollTo({ top: saved, behavior: "instant" }));
+  }, [booting, view]);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem("aprova-theme", theme); } catch { /* armazenamento indisponível */ }
