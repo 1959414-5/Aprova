@@ -1799,3 +1799,93 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   line-height: 1.7;
 }
 .essay-edital-note strong { color: var(--success-text); }
+
+
+/* Segurança de progresso das aulas: abrir é somente visualizar; concluir exige confirmação. */
+.lesson-open-safety-note {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 16px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.65;
+}
+.lesson-open-safety-note strong {
+  color: var(--mint-deep);
+  font-size: 10px;
+}
+.lesson-completed-hint {
+  color: var(--success-text);
+  font-size: 10px;
+  font-weight: 700;
+}
+.lesson-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(12, 19, 17, .58);
+  backdrop-filter: blur(4px);
+}
+.lesson-confirm-dialog {
+  width: min(100%, 430px);
+  padding: 23px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 22px 70px rgba(0,0,0,.25);
+}
+.lesson-confirm-dialog h3 {
+  margin: 8px 0;
+  font: 800 19px/1.35 "Manrope",sans-serif;
+}
+.lesson-confirm-dialog > p {
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.8;
+}
+.lesson-confirm-warning {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: var(--warning-text) !important;
+}
+.lesson-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 17px;
+}
+.essay-lesson-state-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 180px;
+}
+.essay-lesson-state-copy strong {
+  color: var(--text);
+  font: 800 12px "Manrope",sans-serif;
+}
+.essay-lesson-state-copy small {
+  color: var(--muted);
+  font-size: 9px;
+}
+.essay-course-index-item:focus-visible,
+.essay-learning-tab:focus-visible,
+.essay-exercise-option:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+@media (max-width: 720px) {
+  .lesson-confirm-dialog { padding: 18px; }
+  .lesson-confirm-actions { display: grid; grid-template-columns: 1fr; }
+  .lesson-confirm-actions .button { width: 100%; }
+  .essay-lesson-state-copy { min-width: 0; }
+}
