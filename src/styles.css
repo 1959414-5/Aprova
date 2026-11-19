@@ -2211,3 +2211,9 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 .topbar-right .theme-toggle { width: 36px; height: 36px; padding: 0; justify-content: center; gap: 0; }
 .topbar-right .theme-toggle small { display: none; }
 .topbar-right .theme-toggle span { font-size: 18px; }
+
+
+/* Topbar: botão Professor IA compacto, somente ícone */
+.topbar-tutor-button { width: 36px; height: 36px; min-height: 36px; padding: 0; gap: 0; }
+.topbar-tutor-label { display: none; }
+.topbar-tutor-icon { font-size: 18px; }
