@@ -36,7 +36,7 @@ Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [d
 Projeto: `ehsrjjflwrmmegfvupch`. O schema original tem RLS habilitado. Tabelas e estruturas adicionais:
 - `topic_lessons`: leitura autenticada de aulas publicadas.
 - `topic_progress`: progresso isolado por usuário.
-- `lesson_study_sessions`: sessões independentes por tópico/aula de redação, com duração exata em segundos e RLS por usuário.
+- `lesson_study_sessions`: sessões independentes por tópico/aula de redação, com duração exata em segundos, meta do Plano Flexível e registro de meta atingida, protegidas por RLS.
 - `ai_tutor_usage`: controle privado de consumo de IA, separado por tipo de solicitação.
 
 Edge Functions:
@@ -55,6 +55,9 @@ A API da OpenAI é faturada separadamente da assinatura ChatGPT. Novas contas us
 O modelo padrão no servidor é `gpt-6.2-sol`. O limite é de até 35 perguntas/dia por conta no tutor e 35 solicitações/dia por conta na correção de redações. As cotas são separadas; os limites internos não representam o saldo da conta OpenAI.
 
 Mais detalhes: [docs/PROFESSOR-IA.md](docs/PROFESSOR-IA.md).
+
+## Plano Flexível
+O candidato escolhe blocos de 15, 40 ou 90 minutos. A escolha fica salva no navegador e é copiada para cada sessão. O cronômetro faz contagem regressiva, registra o marco de meta atingida e continua em tempo excedido até o usuário salvar ou cancelar. O aviso interno sempre funciona; notificações do navegador são opcionais e dependem de permissão concedida pelo usuário.
 
 ## Segurança
 O repositório é público. Não inclua service-role/secret key, chaves de provedores de IA, credenciais ou gabaritos nas fontes versionadas. A publishable key é apropriada para o frontend com RLS habilitado.
