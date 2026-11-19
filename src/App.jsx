@@ -136,6 +136,10 @@ function getSubjectName(rows, examSubjectId) {
 
 export default function App() {
   const [session, setSession] = useState(null);
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("aprova-theme") || "light"; }
+    catch { return "light"; }
+  });
   const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
@@ -156,6 +160,11 @@ export default function App() {
   const [questionStartedAt, setQuestionStartedAt] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
   const user = session?.user ?? null;
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("aprova-theme", theme); } catch { /* armazenamento indisponível */ }
+  }, [theme]);
 
   useEffect(() => {
     if (!supabase) {
@@ -392,7 +401,13 @@ export default function App() {
       <main className="main-area">
         <header className="topbar">
           <div><span className="eyebrow">CONCURSO SBMG · 2026</span><div className="topbar-title">{NAV_ITEMS.find((item) => item.id === view)?.label || (view === "results" ? "Resultado do diagnóstico" : "Área do candidato")}</div></div>
-          <div className="topbar-right"><span className="top-date">{formatDate(new Date())}</span><button className="avatar avatar-small" title={user.email}>{(user.email || "A").slice(0, 1).toUpperCase()}</button></div>
+          <div className="topbar-right">
+            <span className="top-date">{formatDate(new Date())}</span>
+            <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
+              <span>{theme === "dark" ? "☼" : "◐"}</span><small>{theme === "dark" ? "Claro" : "Escuro"}</small>
+            </button>
+            <button className="avatar avatar-small" title={user.email}>{(user.email || "A").slice(0, 1).toUpperCase()}</button>
+          </div>
         </header>
         {notice && <div className="global-notice"><span>{notice}</span><button onClick={() => setNotice("")}>×</button></div>}
         {busy && <div className="busy-line"><span /></div>}
