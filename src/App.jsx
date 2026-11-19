@@ -578,20 +578,57 @@ export default function App() {
       const { data: examData, error: examError } = await supabase.from("exams").select("*").eq("slug", EXAM_SLUG).single();
       if (examError) throw examError;
 
-      const { data: openDiagnosticData, error: openDiagnosticError } = await supabase.from("assessment_runs")
-        .select("id, started_at, question_count")
-        .eq("user_id", currentUser.id)
-        .eq("exam_id", examData.id)
-        .eq("run_type", "diagnostico")
-        .is("finished_at", null)
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (openDiagnosticError) throw openDiagnosticError;
+      // Fetch independent user/exam datasets concurrently to reduce total round-trips.
+      const [
+        openDiagnosticResult, profileResult, subjectsResult, attemptsResult,
+        sessionsResult, activeLessonSessionResult, essayResult, essayLearningResult,
+        flashcardsResult, flashcardReviewsResult, lessonsResult, progressResult,
+      ] = await Promise.all([
+        supabase.from("assessment_runs").select("id, started_at, question_count")
+          .eq("user_id", currentUser.id).eq("exam_id", examData.id).eq("run_type", "diagnostico")
+          .is("finished_at", null).order("started_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("study_profiles").select("user_id, experience_level, availability_mode, work_schedule, weekday_min_minutes, weekday_target_minutes, weekend_target_minutes, target_exam_date, preferred_devices")
+          .eq("user_id", currentUser.id).maybeSingle(),
+        supabase.from("exam_subjects").select("id, display_order, question_count, total_points, points_per_question, subjects(id, slug, name), topics(id, slug, title, syllabus_text, priority, estimated_minutes, display_order)")
+          .eq("exam_id", examData.id).order("display_order"),
+        supabase.from("question_attempts").select("id, is_correct, answered_at, question_id")
+          .eq("user_id", currentUser.id).order("answered_at", { ascending: false }).limit(500),
+        supabase.from("study_sessions").select("id, duration_minutes, topic_id, study_method, studied_at")
+          .eq("user_id", currentUser.id).order("studied_at", { ascending: false }).limit(300),
+        supabase.from("lesson_study_sessions").select("id, lesson_type, topic_id, essay_lesson_id, lesson_title, started_at, planned_minutes, goal_reached_at")
+          .eq("user_id", currentUser.id).eq("status", "em_andamento").maybeSingle(),
+        supabase.from("essay_submissions").select("id, prompt, text_content, line_count, score_adequacy, score_content, score_coherence, score_language, score_total, ai_feedback, status, created_at, ai_model")
+          .eq("user_id", currentUser.id).order("created_at", { ascending: false }).limit(100),
+        supabase.from("essay_learning_progress").select("lesson_id, exercise_answers, completed, status, started_at, last_activity_at, completed_at")
+          .eq("user_id", currentUser.id),
+        supabase.from("flashcards").select("id, topic_id, front, back, difficulty").eq("is_published", true),
+        supabase.from("flashcard_reviews").select("id, flashcard_id, confidence, reviewed_at, next_review_at")
+          .eq("user_id", currentUser.id).order("reviewed_at", { ascending: true }).limit(500),
+        supabase.from("topic_lessons").select("topic_id, title, content, source_basis, version").eq("is_published", true),
+        supabase.from("topic_progress").select("topic_id, status, started_at, completed_at, last_studied_at, updated_at")
+          .eq("user_id", currentUser.id),
+      ]);
+      const results = [
+        ["diagnóstico aberto", openDiagnosticResult], ["perfil", profileResult], ["disciplinas", subjectsResult],
+        ["tentativas", attemptsResult], ["sessões", sessionsResult], ["sessão ativa", activeLessonSessionResult],
+        ["redações", essayResult], ["progresso de redação", essayLearningResult], ["flashcards", flashcardsResult],
+        ["revisões", flashcardReviewsResult], ["aulas", lessonsResult], ["progresso dos tópicos", progressResult],
+      ];
+      for (const [label, result] of results) if (result.error) throw new Error(`Falha ao carregar ${label}: ${result.error.message}`);
+      const openDiagnosticData = openDiagnosticResult.data;
+      const profileData = profileResult.data;
+      const subjectsData = subjectsResult.data;
+      const attemptsData = attemptsResult.data;
+      const sessionsData = sessionsResult.data;
+      const activeLessonSessionData = activeLessonSessionResult.data;
+      const essayData = essayResult.data;
+      const essayLearningData = essayLearningResult.data;
+      const flashcardData = flashcardsResult.data;
+      const flashcardReviewData = flashcardReviewsResult.data;
+      const lessonsData = lessonsResult.data;
+      const progressData = progressResult.data;
       setPendingDiagnosticResume(openDiagnosticData || null);
 
-      const { data: profileData, error: profileError } = await supabase.from("study_profiles").select("*").eq("user_id", currentUser.id).maybeSingle();
-      if (profileError) throw profileError;
       let activeProfile = profileData;
       if (!activeProfile) {
         const { data: newProfile, error: createProfileError } = await supabase.from("study_profiles").insert({
@@ -608,54 +645,6 @@ export default function App() {
         if (createProfileError) throw createProfileError;
         activeProfile = newProfile;
       }
-
-      const { data: subjectsData, error: subjectsError } = await supabase.from("exam_subjects")
-        .select("id, display_order, question_count, total_points, points_per_question, subjects(id, slug, name), topics(id, slug, title, syllabus_text, priority, estimated_minutes, display_order)")
-        .eq("exam_id", examData.id).order("display_order");
-      if (subjectsError) throw subjectsError;
-
-      const { data: attemptsData, error: attemptsError } = await supabase.from("question_attempts")
-        .select("id, is_correct, answered_at, question_id").eq("user_id", currentUser.id).order("answered_at", { ascending: false });
-      if (attemptsError) throw attemptsError;
-
-      const { data: sessionsData, error: sessionsError } = await supabase.from("study_sessions")
-        .select("id, duration_minutes, topic_id, study_method, studied_at").eq("user_id", currentUser.id).order("studied_at", { ascending: false });
-      if (sessionsError) throw sessionsError;
-
-      const { data: activeLessonSessionData, error: activeLessonSessionError } = await supabase.from("lesson_study_sessions")
-        .select("id, lesson_type, topic_id, essay_lesson_id, lesson_title, started_at, planned_minutes, goal_reached_at")
-        .eq("user_id", currentUser.id).eq("status", "em_andamento").maybeSingle();
-      if (activeLessonSessionError) throw activeLessonSessionError;
-
-      const { data: essayData, error: essayError } = await supabase.from("essay_submissions")
-        .select("id, prompt, text_content, line_count, score_adequacy, score_content, score_coherence, score_language, score_total, ai_feedback, status, created_at, ai_model")
-        .eq("user_id", currentUser.id).order("created_at", { ascending: false });
-      if (essayError) throw essayError;
-
-      const { data: essayLearningData, error: essayLearningError } = await supabase.from("essay_learning_progress")
-        .select("lesson_id, exercise_answers, completed, status, started_at, last_activity_at, completed_at")
-        .eq("user_id", currentUser.id);
-      if (essayLearningError) throw essayLearningError;
-
-      const { data: flashcardData, error: flashcardError } = await supabase.from("flashcards")
-        .select("id, topic_id, front, back, difficulty")
-        .eq("is_published", true);
-      if (flashcardError) throw flashcardError;
-
-      const { data: flashcardReviewData, error: flashcardReviewError } = await supabase.from("flashcard_reviews")
-        .select("id, flashcard_id, confidence, reviewed_at, next_review_at")
-        .eq("user_id", currentUser.id).order("reviewed_at", { ascending: true });
-      if (flashcardReviewError) throw flashcardReviewError;
-
-      const { data: lessonsData, error: lessonsError } = await supabase.from("topic_lessons")
-        .select("topic_id, title, content, source_basis, version")
-        .eq("is_published", true);
-      if (lessonsError) throw lessonsError;
-
-      const { data: progressData, error: progressError } = await supabase.from("topic_progress")
-        .select("topic_id, status, started_at, completed_at, last_studied_at, updated_at")
-        .eq("user_id", currentUser.id);
-      if (progressError) throw progressError;
 
       setExam(examData);
       setProfile(activeProfile);
