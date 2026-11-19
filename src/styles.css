@@ -366,3 +366,9 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+
+/* Header da autenticação mantém o controle de tema acessível antes do login. */
+.auth-form-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.auth-form-head .mobile-brand { margin: 0; }
+.auth-form-head .theme-toggle { margin-left: auto; }

@@ -36,7 +36,7 @@ function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 
-function AuthScreen() {
+function AuthScreen({ theme, setTheme }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +51,11 @@ function AuthScreen() {
     setMessage("");
     try {
       if (mode === "signup") {
-        const { data, error: authError } = await supabase.auth.signUp({ email: email.trim(), password });
+        const { data, error: authError } = await supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: { emailRedirectTo: window.location.origin + window.location.pathname },
+        });
         if (authError) throw authError;
         if (data.session) setMessage("Conta criada. Seu ambiente de estudos está sendo preparado.");
         else setMessage("Cadastro enviado. Confira seu e-mail para confirmar a conta e depois entre no sistema.");
@@ -80,7 +84,12 @@ function AuthScreen() {
       </div>
       <div className="auth-form-wrap">
         <div className="auth-form">
-          <div className="mobile-brand"><span className="brand-mark">A</span><strong>APROVA</strong></div>
+          <div className="auth-form-head">
+            <div className="mobile-brand"><span className="brand-mark">A</span><strong>APROVA</strong></div>
+            <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}>
+              <span>{theme === "dark" ? "☼" : "◐"}</span><small>{theme === "dark" ? "Claro" : "Escuro"}</small>
+            </button>
+          </div>
           <span className="eyebrow">ÁREA DO CANDIDATO</span>
           <h2>{mode === "login" ? "Continue sua preparação" : "Crie sua conta"}</h2>
           <p className="muted">{mode === "login" ? "Entre para acessar seu progresso e seu plano de estudos." : "Seu histórico de estudos ficará salvo nesta conta."}</p>
@@ -369,7 +378,7 @@ export default function App() {
     return <div className="config-screen"><div className="config-card"><span className="brand-mark">A</span><h1>Configure o Supabase</h1><p>Crie um arquivo .env.local usando .env.example e informe a URL e a publishable key do projeto Aprova.</p></div></div>;
   }
   if (booting) return <div className="loading-screen"><span className="loader" /><span>Preparando seu ambiente de estudos...</span></div>;
-  if (!user) return <AuthScreen />;
+  if (!user) return <AuthScreen theme={theme} setTheme={setTheme} />;
 
   return (
     <div className="app-shell">
