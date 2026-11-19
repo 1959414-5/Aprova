@@ -1598,7 +1598,7 @@ export default function App() {
               aria-label="Abrir Professor IA"
               title="Professor IA"
             >
-              <span className="topbar-tutor-icon">✦</span><span className="topbar-tutor-label">Professor IA</span>
+              <span className="topbar-tutor-icon">✦</span>
             </button>
             <div className="topbar-user">
               <span className="topbar-user-name" title={user.email}>{user.email?.split("@")[0] || "Candidato"}</span>
