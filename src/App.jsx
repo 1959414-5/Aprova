@@ -418,6 +418,7 @@ export default function App() {
   const [quizStartedAt, setQuizStartedAt] = useState(null);
   const [questionStartedAt, setQuestionStartedAt] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
+  const [pendingDiagnosticResume, setPendingDiagnosticResume] = useState(null);
   const user = session?.user ?? null;
 
   useEffect(() => {
@@ -521,6 +522,18 @@ export default function App() {
     try {
       const { data: examData, error: examError } = await supabase.from("exams").select("*").eq("slug", EXAM_SLUG).single();
       if (examError) throw examError;
+
+      const { data: openDiagnosticData, error: openDiagnosticError } = await supabase.from("assessment_runs")
+        .select("id, started_at, question_count")
+        .eq("user_id", currentUser.id)
+        .eq("exam_id", examData.id)
+        .eq("run_type", "diagnostico")
+        .is("finished_at", null)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (openDiagnosticError) throw openDiagnosticError;
+      setPendingDiagnosticResume(openDiagnosticData || null);
 
       const { data: profileData, error: profileError } = await supabase.from("study_profiles").select("*").eq("user_id", currentUser.id).maybeSingle();
       if (profileError) throw profileError;
@@ -1274,46 +1287,47 @@ export default function App() {
     setQuizResult(null);
     setQuizMode("diagnostico");
     try {
-      const { data: bank, error: bankError } = await supabase.from("questions")
-        .select("id, exam_subject_id, topic_id, statement, options, difficulty, points, origin")
-        .eq("exam_id", exam.id).eq("is_published", true);
-      if (bankError) throw bankError;
-      if (!bank || bank.length < 22) throw new Error("O banco do diagnóstico ainda está sendo preparado.");
-
-      const sampleCounts = {
-        "lingua-portuguesa": 3,
-        "matematica-raciocinio-logico": 3,
-        informatica: 3,
-        "conhecimentos-gerais-atualidades": 3,
-        "conhecimentos-especificos": 10,
-      };
-      const selected = subjectRows.flatMap((row) => {
-        const slug = row.subjects?.slug;
-        const count = sampleCounts[slug] || 0;
-        return shuffle(bank.filter((question) => question.exam_subject_id === row.id)).slice(0, count);
+      const { data, error } = await supabase.functions.invoke("diagnostic-session", {
+        body: { action: "start" },
       });
-      if (selected.length !== 22) {
-        throw new Error("Não foi possível montar o diagnóstico com a distribuição prevista de 22 questões.");
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.run_id || !Array.isArray(data.questions) || data.questions.length !== 22) {
+        throw new Error("O servidor não retornou uma sequência válida de 22 questões.");
       }
 
-      const { data: run, error: runError } = await supabase.from("assessment_runs").insert({
-        user_id: user.id,
-        exam_id: exam.id,
-        run_type: "diagnostico",
-        title: "Diagnóstico inicial — 22 questões",
-        question_count: selected.length,
-        metadata: { origin: "banco_autoral_ia", question_distribution: sampleCounts },
-      }).select("id").single();
-      if (runError) throw runError;
+      const restoredAttempts = Array.isArray(data.attempts) ? data.attempts : [];
+      if (restoredAttempts.length > 22) {
+        throw new Error("A tentativa contém mais respostas que o limite do diagnóstico. Nenhuma resposta foi alterada.");
+      }
 
-      setQuizQuestions(selected);
-      setQuizRunId(run.id);
-      setQuizIndex(0);
-      setQuizStartedAt(Date.now());
+      const finalQuestionPending = data.completed_pending === true && restoredAttempts.length === 22;
+      const lastAttempt = finalQuestionPending ? restoredAttempts[restoredAttempts.length - 1] : null;
+      const lastFeedback = finalQuestionPending && data.last_answer_feedback
+        ? { ...data.last_answer_feedback, recorded: true, restored: true }
+        : null;
+      const startedAt = Date.parse(data.started_at);
+
+      setQuizQuestions(data.questions);
+      setQuizRunId(data.run_id);
+      setQuizIndex(finalQuestionPending ? 21 : restoredAttempts.length);
+      setSelectedOption(lastAttempt?.selected_option || "");
+      setFeedback(lastFeedback);
+      setResponses(restoredAttempts.map((attempt) => ({
+        questionId: attempt.question_id,
+        isCorrect: Boolean(attempt.is_correct),
+        points: Number(attempt.points || 1),
+        topicId: attempt.topic_id || null,
+      })));
+      setQuizStartedAt(Number.isFinite(startedAt) ? startedAt : Date.now());
       setQuestionStartedAt(Date.now());
+      setPendingDiagnosticResume(null);
       setView("diagnostic");
+      setNotice(data.resumed
+        ? "Diagnóstico retomado. " + restoredAttempts.length + " de 22 respostas foram recuperadas."
+        : "Diagnóstico iniciado. Sua sequência de questões e respostas será preservada automaticamente.");
     } catch (err) {
-      setNotice(err.message || "Não foi possível iniciar o diagnóstico.");
+      setNotice(err.message || "Não foi possível iniciar ou retomar o diagnóstico.");
     } finally {
       diagnosticStartLock.current = false;
       setBusy(false);
@@ -1634,14 +1648,16 @@ export default function App() {
               </h3>
               <p>
                 {assessmentConfirmAction === "start-diagnostic"
-                  ? "Serão carregadas 22 questões e o cronômetro começará. O diagnóstico só será criado depois desta confirmação."
+                  ? pendingDiagnosticResume
+                    ? "Encontramos uma tentativa em andamento. Ao confirmar, a sequência de questões e as respostas já registradas serão recuperadas para você continuar de onde parou."
+                    : "Serão carregadas 22 questões e o cronômetro começará. A sequência de questões ficará salva para permitir a retomada se você atualizar a página."
                   : assessmentConfirmAction === "leave-diagnostic"
                     ? "A avaliação será encerrada. As respostas já enviadas poderão compor um resultado parcial; questões ainda não respondidas não serão registradas."
                     : "Suas respostas serão enviadas para correção e o resultado será calculado. Depois disso, esta tentativa não poderá continuar."}
               </p>
               <p className="lesson-confirm-warning">
                 {assessmentConfirmAction === "start-diagnostic"
-                  ? "Se você apenas queria abrir a área, escolha voltar. Nenhuma tentativa será iniciada."
+                  ? "Se você apenas queria abrir a área, escolha voltar. A tentativa só será iniciada ou retomada depois desta confirmação."
                   : assessmentConfirmAction === "leave-diagnostic"
                     ? "Só confirme se realmente deseja interromper esta tentativa."
                     : "Confirme somente depois de revisar suas respostas."}
@@ -1649,7 +1665,7 @@ export default function App() {
               <div className="lesson-confirm-actions">
                 <button className="button button-secondary" onClick={() => setAssessmentConfirmAction(null)} disabled={busy}>Não, voltar</button>
                 <button className="button button-primary" onClick={confirmAssessmentAction} disabled={busy}>
-                  {busy ? "Processando..." : assessmentConfirmAction === "start-diagnostic" ? "Sim, iniciar diagnóstico" : assessmentConfirmAction === "leave-diagnostic" ? "Sim, sair" : "Sim, finalizar diagnóstico"}
+                  {busy ? "Processando..." : assessmentConfirmAction === "start-diagnostic" ? "Sim, iniciar ou retomar" : assessmentConfirmAction === "leave-diagnostic" ? "Sim, sair" : "Sim, finalizar diagnóstico"}
                 </button>
               </div>
             </div>
@@ -1660,7 +1676,7 @@ export default function App() {
           <section className="content-section">
             <div className="welcome-row">
               <div><span className="eyebrow">BEM-VINDO À SUA PREPARAÇÃO</span><h1>Um passo de cada vez.</h1><p className="muted">O plano se adapta aos dias corridos e aos períodos com mais disponibilidade.</p></div>
-              <button className="button button-primary" onClick={startDiagnostic} disabled={busy}>Fazer diagnóstico inicial <span>→</span></button>
+              <button className="button button-primary" onClick={startDiagnostic} disabled={busy}>{pendingDiagnosticResume ? "Retomar diagnóstico" : "Fazer diagnóstico inicial"} <span>→</span></button>
             </div>
             <div className="countdown-banner">
               <div className="countdown-icon">◷</div>
@@ -1707,7 +1723,7 @@ export default function App() {
                   </div>
                 )}
                 <div className="plan-tip"><span>✦</span><p><strong>Meta flexível, não limite obrigatório.</strong><br />Quando o tempo terminar, o sistema avisa e continua contando o excedente até você salvar ou cancelar a sessão.</p></div>
-                <button className="button button-primary button-wide" onClick={startDiagnostic}>Começar pelo diagnóstico</button>
+                <button className="button button-primary button-wide" onClick={startDiagnostic}>{pendingDiagnosticResume ? "Retomar diagnóstico" : "Começar pelo diagnóstico"}</button>
                 <button className="button button-secondary button-wide" onClick={() => setView("simulations")}>Ver simulados completos →</button>
               </div>
             </div>
