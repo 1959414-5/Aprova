@@ -12,7 +12,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
   }
 
   try {
-    const userId = ctx.userClaims?.sub;
+    const userId = ctx.userClaims?.id;
     if (!userId) return Response.json({ error: "Sessão não identificada." }, { status: 401, headers: corsHeaders });
 
     const body = await req.json();
