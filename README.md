@@ -36,6 +36,7 @@ Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [d
 Projeto: `ehsrjjflwrmmegfvupch`. O schema original tem RLS habilitado. Tabelas e estruturas adicionais:
 - `topic_lessons`: leitura autenticada de aulas publicadas.
 - `topic_progress`: progresso isolado por usuário.
+- `lesson_study_sessions`: sessões independentes por tópico/aula de redação, com duração exata em segundos e RLS por usuário.
 - `ai_tutor_usage`: controle privado de consumo de IA, separado por tipo de solicitação.
 
 Edge Functions:
