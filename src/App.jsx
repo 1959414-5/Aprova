@@ -355,6 +355,8 @@ export default function App() {
   const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
   const [view, setView] = useState("dashboard");
   const [exam, setExam] = useState(null);
   const [subjectRows, setSubjectRows] = useState([]);
@@ -1539,10 +1541,55 @@ export default function App() {
   }
 
   async function signOut() {
-    await supabase.auth.signOut();
+    setProfileMenuOpen(false);
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setNotice(error.message || "Não foi possível encerrar a sessão.");
+      return;
+    }
     setSession(null);
     setView("dashboard");
     setSubjectRows([]);
+  }
+
+  function updateProfilePreference(key, value) {
+    setProfile((current) => ({
+      ...(current || {}),
+      study_preferences: { ...(current?.study_preferences || {}), [key]: value },
+    }));
+  }
+
+  async function saveProfile() {
+    if (!user?.id || !profile) return;
+    setProfileSaving(true);
+    setNotice("");
+    try {
+      const payload = {
+        user_id: user.id,
+        display_name: profile.display_name?.trim() || null,
+        experience_level: profile.experience_level || "basico",
+        availability_mode: profile.availability_mode || "variavel",
+        work_schedule: profile.work_schedule || null,
+        weekday_min_minutes: Number(profile.weekday_min_minutes) || 15,
+        weekday_target_minutes: Number(profile.weekday_target_minutes) || 40,
+        weekend_target_minutes: Number(profile.weekend_target_minutes) || 90,
+        target_exam_date: profile.target_exam_date || EXAM_DAY,
+        preferred_devices: profile.preferred_devices || ["desktop", "mobile"],
+        study_preferences: profile.study_preferences || {},
+        updated_at: new Date().toISOString(),
+      };
+      const { data, error } = await supabase.from("study_profiles")
+        .upsert(payload, { onConflict: "user_id" })
+        .select("*")
+        .single();
+      if (error) throw error;
+      setProfile(data);
+      setNotice("Perfil atualizado e salvo com sucesso.");
+    } catch (err) {
+      setNotice(err.message || "Não foi possível salvar seu perfil.");
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
   if (!isSupabaseConfigured) {
@@ -1585,7 +1632,7 @@ export default function App() {
 
       <main className="main-area">
         <header className="topbar">
-          <div><span className="eyebrow">CONCURSO SBMG · 2026</span><div className="topbar-title">{view === "simulation" ? "Simulado completo" : NAV_ITEMS.find((item) => item.id === view)?.label || (view === "results" ? (quizResult?.mode === "simulado" ? "Resultado do simulado" : "Resultado do diagnóstico") : "Área do candidato")}</div></div>
+          <div><span className="eyebrow">CONCURSO SBMG · 2026</span><div className="topbar-title">{view === "simulation" ? "Simulado completo" : view === "profile" ? "Meu perfil" : NAV_ITEMS.find((item) => item.id === view)?.label || (view === "results" ? (quizResult?.mode === "simulado" ? "Resultado do simulado" : "Resultado do diagnóstico") : "Área do candidato")}</div></div>
           <div className="topbar-right">
             <span className="top-date">{formatDate(new Date())}</span>
             <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
@@ -1600,9 +1647,17 @@ export default function App() {
             >
               <span className="topbar-tutor-icon">✦</span>
             </button>
-            <div className="topbar-user">
-              <span className="topbar-user-name" title={user.email}>{user.email?.split("@")[0] || "Candidato"}</span>
-              <span className="avatar avatar-small" aria-hidden="true">{(user.email || "A").slice(0, 1).toUpperCase()}</span>
+            <div className="profile-menu-wrap">
+              <button className="topbar-user profile-menu-trigger" type="button" aria-haspopup="menu" aria-expanded={profileMenuOpen} aria-label="Menu do usuário" onClick={() => setProfileMenuOpen((open) => !open)}>
+                <span className="topbar-user-name" title={user.email}>{profile?.display_name || user.email?.split("@")[0] || "Candidato"}</span>
+                <span className="avatar avatar-small" aria-hidden="true">{(profile?.display_name || user.email || "A").slice(0, 1).toUpperCase()}</span>
+                <span className="profile-menu-chevron" aria-hidden="true">⌄</span>
+              </button>
+              {profileMenuOpen && <div className="profile-dropdown" role="menu">
+                <div className="profile-dropdown-heading"><strong>{profile?.display_name || user.email?.split("@")[0] || "Candidato"}</strong><small>{user.email}</small></div>
+                <button type="button" role="menuitem" onClick={() => { setProfileMenuOpen(false); setView("profile"); }}><span>◉</span> Meu perfil</button>
+                <button type="button" role="menuitem" className="profile-dropdown-logout" onClick={signOut}><span>↪</span> Sair da sessão</button>
+              </div>}
             </div>
           </div>
         </header>
@@ -1670,6 +1725,91 @@ export default function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {view === "profile" && (
+          <section className="content-section profile-page">
+            <div className="page-heading">
+              <span className="eyebrow">CONTA E PREFERÊNCIAS</span>
+              <h1>Meu perfil</h1>
+              <p className="muted">Atualize seus dados e preferências de preparação. As alterações ficam salvas na sua conta.</p>
+            </div>
+            <div className="profile-layout">
+              <div className="panel profile-card">
+                <div className="profile-card-avatar">{(profile?.display_name || user.email || "A").slice(0, 1).toUpperCase()}</div>
+                <h2>{profile?.display_name || "Seu perfil"}</h2>
+                <p>{user.email}</p>
+                <span className="profile-account-badge">Conta autenticada</span>
+                <div className="profile-card-note">Seu progresso, simulados, revisões e sessões de estudo permanecem vinculados a esta conta.</div>
+              </div>
+              <form className="panel profile-form" onSubmit={(event) => { event.preventDefault(); saveProfile(); }}>
+                <div className="panel-heading"><div><span className="eyebrow">DADOS PESSOAIS</span><h2>Informações do candidato</h2></div></div>
+                <div className="profile-form-grid">
+                  <label>Nome de exibição
+                    <input value={profile?.display_name || ""} onChange={(e) => setProfile((current) => ({ ...(current || {}), display_name: e.target.value }))} placeholder="Como deseja ser chamado?" maxLength={80} />
+                  </label>
+                  <label>E-mail
+                    <input value={user.email || ""} disabled readOnly />
+                    <small>O e-mail da conta não pode ser alterado aqui.</small>
+                  </label>
+                  <label>Telefone
+                    <input value={profile?.study_preferences?.phone || ""} onChange={(e) => updateProfilePreference("phone", e.target.value)} placeholder="(00) 00000-0000" autoComplete="tel" />
+                  </label>
+                  <label>Ocupação atual
+                    <input value={profile?.study_preferences?.occupation || ""} onChange={(e) => updateProfilePreference("occupation", e.target.value)} placeholder="Sua ocupação" />
+                  </label>
+                  <label>Escolaridade
+                    <select value={profile?.study_preferences?.education || ""} onChange={(e) => updateProfilePreference("education", e.target.value)}>
+                      <option value="">Selecione</option><option>Ensino fundamental</option><option>Ensino médio</option><option>Ensino técnico</option><option>Graduação em andamento</option><option>Graduação completa</option><option>Pós-graduação</option><option>Mestrado</option><option>Doutorado</option>
+                    </select>
+                  </label>
+                  <div className="profile-location-fields">
+                    <label>Cidade
+                      <input value={profile?.study_preferences?.city || ""} onChange={(e) => updateProfilePreference("city", e.target.value)} placeholder="Cidade" />
+                    </label>
+                    <label>Estado
+                      <select value={profile?.study_preferences?.state || ""} onChange={(e) => updateProfilePreference("state", e.target.value)}>
+                        <option value="">UF</option>{["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"].map((uf) => <option key={uf} value={uf}>{uf}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                </div>
+                <div className="profile-form-divider" />
+                <div className="panel-heading"><div><span className="eyebrow">PREPARAÇÃO</span><h2>Preferências de estudo</h2></div></div>
+                <div className="profile-form-grid">
+                  <label>Nível atual
+                    <select value={profile?.experience_level || "basico"} onChange={(e) => setProfile((current) => ({ ...(current || {}), experience_level: e.target.value }))}>
+                      <option value="basico">Básico</option><option value="intermediario">Intermediário</option><option value="avancado">Avançado</option>
+                    </select>
+                  </label>
+                  <label>Disponibilidade
+                    <select value={profile?.availability_mode || "variavel"} onChange={(e) => setProfile((current) => ({ ...(current || {}), availability_mode: e.target.value }))}>
+                      <option value="variavel">Variável</option><option value="fixa">Fixa</option>
+                    </select>
+                  </label>
+                  <label className="profile-field-full">Rotina / horário disponível
+                    <textarea rows={3} value={profile?.work_schedule || ""} onChange={(e) => setProfile((current) => ({ ...(current || {}), work_schedule: e.target.value }))} placeholder="Descreva seus horários e limitações de estudo" />
+                  </label>
+                  <label>Meta mínima (dias úteis, min)
+                    <input type="number" min="1" max="600" value={profile?.weekday_min_minutes ?? 15} onChange={(e) => setProfile((current) => ({ ...(current || {}), weekday_min_minutes: Number(e.target.value) }))} />
+                  </label>
+                  <label>Meta alvo (dias úteis, min)
+                    <input type="number" min="1" max="600" value={profile?.weekday_target_minutes ?? 40} onChange={(e) => setProfile((current) => ({ ...(current || {}), weekday_target_minutes: Number(e.target.value) }))} />
+                  </label>
+                  <label>Meta alvo (fins de semana, min)
+                    <input type="number" min="1" max="600" value={profile?.weekend_target_minutes ?? 90} onChange={(e) => setProfile((current) => ({ ...(current || {}), weekend_target_minutes: Number(e.target.value) }))} />
+                  </label>
+                  <label>Data-alvo da prova
+                    <input type="date" value={profile?.target_exam_date || EXAM_DAY} onChange={(e) => setProfile((current) => ({ ...(current || {}), target_exam_date: e.target.value }))} />
+                  </label>
+                </div>
+                <div className="profile-devices"><strong>Dispositivos preferidos</strong><div>
+                  {["desktop","mobile","tablet"].map((device) => <label key={device}><input type="checkbox" checked={(profile?.preferred_devices || ["desktop","mobile"]).includes(device)} onChange={(e) => { const old = profile?.preferred_devices || ["desktop","mobile"]; setProfile((current) => ({ ...(current || {}), preferred_devices: e.target.checked ? [...old.filter((item) => item !== device), device] : old.filter((item) => item !== device) })); }} />{device === "desktop" ? "Computador" : device === "mobile" ? "Celular" : "Tablet"}</label>)}
+                </div></div>
+                <div className="profile-form-footer"><span className="muted small-copy">Não esqueça de salvar para registrar as alterações.</span><button className="button button-primary" type="submit" disabled={profileSaving}>{profileSaving ? "Salvando..." : "Salvar alterações"}</button></div>
+              </form>
+            </div>
+          </section>
         )}
 
         {view === "dashboard" && (
