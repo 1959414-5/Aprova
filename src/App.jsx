@@ -170,6 +170,20 @@ function AuthScreen({ theme, setTheme }) {
   );
 }
 
+function LessonVisualAid({ topic, content }) {
+  const title = (topic?.title || "").toLowerCase();
+  const intro = (content?.introduction || "").toLowerCase();
+  const full = title + " " + intro;
+  let aid = null;
+  if (/hardware|perif|software|informática|computador/.test(full)) aid = {label:"Mapa do computador", items:[["ENTRADA","Teclado · mouse · scanner"],["PROCESSAMENTO","CPU · memória RAM"],["ARMAZENAMENTO","SSD · HD · pendrive"],["SAÍDA","Monitor · impressora"]],note:"O fluxo ajuda a classificar o papel de cada componente."};
+  else if (/interpreta|compreensão|texto|gramática|linguagem/.test(full)) aid = {label:"Como analisar um texto",items:[["1 · LOCALIZE","O que o texto afirma explicitamente?"],["2 · INTERPRETE","Que conclusão é sustentada pelas pistas?"],["3 · CONFIRA","A alternativa extrapola o texto?"]],note:"A resposta precisa ter evidência no texto — plausibilidade não basta."};
+  else if (/número|operaç|porcent|fraç|razão|propor|matem|lógic|equação/.test(full)) aid = {label:"Roteiro de resolução",items:[["IDENTIFIQUE","Dados e o que a questão pede"],["ORGANIZE","Operação, fórmula ou relação"],["RESOLVA","Faça uma etapa por vez"],["VALIDAÇÃO","Confira sinal, unidade e resultado"]],note:"Antes de calcular, transforme o enunciado em uma pergunta objetiva."};
+  else if (/direito|administra|constitui|lei|princípio|gestão pública/.test(full)) aid = {label:"Aplicação prática",items:[["REGRA","Qual princípio, norma ou conceito se aplica?"],["SITUAÇÃO","Qual é o fato apresentado?"],["ANÁLISE","A conduta respeita a regra?"],["CONCLUSÃO","Justifique com base no conceito"]],note:"Em questões jurídicas, não confunda opinião pessoal com fundamento normativo."};
+  else if (/atualidade|notícia|sociedade|economia|política|ambiente|energia|transporte/.test(full)) aid = {label:"Filtro de leitura crítica",items:[["FATO","O que ocorreu? Quando e onde?"],["FONTE","Quem publicou e qual evidência?"],["CONTEXTO","Quais causas e impactos?"],["LIMITE","Fato confirmado ou projeção?"]],note:"Separe informação verificável, interpretação e previsão."};
+  else aid = {label:"Estruture o raciocínio",items:[["CONCEITO","Defina a ideia central"],["EXEMPLO","Veja como aparece na prática"],["APLICAÇÃO","Use o conceito em uma situação"],["REVISÃO","Explique sem consultar"]],note:"Use este roteiro para transformar leitura em compreensão ativa."};
+  return <div className="lesson-visual-aid"><span className="eyebrow">VISUAL PARA ENTENDER</span><h3>{aid.label}</h3><div className="lesson-visual-flow">{aid.items.map((item,i)=><div className="lesson-visual-node" key={i}><b>{item[0]}</b><span>{item[1]}</span>{i<aid.items.length-1&&<i aria-hidden="true">↓</i>}</div>)}</div><p>{aid.note}</p></div>;
+}
+
 function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onMarkComplete, onCancel, onAskTutor, onClose }) {
   const [completionMode, setCompletionMode] = useState(null);
   const [understoodSections, setUnderstoodSections] = useState([]);
