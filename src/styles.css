@@ -2332,3 +2332,39 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 .lesson-challenge-card h3 { font-size:14px; line-height:1.55; margin:9px 0 12px; }
 .lesson-challenge-answer { margin-top:12px; padding:13px; border-radius:12px; background:var(--surface-2); border:1px solid var(--line); }
 .lesson-challenge-answer p { margin:6px 0 0; font-size:12px; line-height:1.65; color:var(--text-soft); }
+
+
+/* Sala de estudos: organização visual dos resumos e blocos da aula */
+.lesson-panel { display: grid; gap: 16px; }
+.lesson-panel-head { margin-bottom: 0; }
+.lesson-open-safety-note { margin: 0; }
+.lesson-start-card, .lesson-learning-map, .lesson-hook-card, .lesson-visual-aid,
+.lesson-objectives-card, .lesson-example-visual, .lesson-two-column,
+.lesson-challenge-card, .lesson-practice { margin: 0; }
+.lesson-article { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin: 0; }
+.lesson-article-heading { grid-column: 1 / -1; padding: 0 2px 2px; margin: 0; }
+.lesson-learning-card { margin: 0; min-width: 0; height: 100%; align-content: start; }
+.lesson-learning-card-content { min-width: 0; }
+.lesson-learning-card-content > p { line-height: 1.7; }
+.lesson-recall-check { margin-top: auto; }
+.lesson-understood-button { justify-self: start; }
+.lesson-objectives-card { padding: 15px 17px; border-radius: 14px; }
+.lesson-objectives { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 5px; }
+.lesson-hook-card { padding: 15px 18px; }
+.lesson-visual-aid { padding: 16px 18px; }
+.lesson-two-column { align-items: stretch; }
+.lesson-summary, .lesson-mistakes { margin: 0; min-width: 0; }
+.lesson-summary ul, .lesson-mistakes ul { margin: 9px 0 0; padding-left: 0; display: grid; gap: 8px; list-style: none; }
+.lesson-mistakes li { position: relative; padding-left: 13px; }
+.lesson-mistakes li::before { content: "•"; position: absolute; left: 0; color: var(--mint-deep); }
+.lesson-challenge-card { padding: 16px 18px; }
+.lesson-practice { padding: 15px 17px; }
+@media (max-width: 800px) { .lesson-article { grid-template-columns: 1fr; } }
+@media (max-width: 620px) {
+ .lesson-panel { gap: 12px; }
+ .lesson-article { gap: 10px; }
+ .lesson-learning-card { padding: 13px; }
+ .lesson-two-column { grid-template-columns: 1fr; gap: 10px; }
+ .lesson-hook-card, .lesson-challenge-card { padding: 14px; }
+ .lesson-visual-aid { padding: 13px; }
+}
