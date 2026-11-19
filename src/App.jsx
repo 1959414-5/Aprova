@@ -1657,7 +1657,7 @@ export default function App() {
     <div className={sidebarCollapsed ? "app-shell sidebar-is-collapsed" : "app-shell"}>
       <aside className="sidebar">
         <div className="sidebar-top-row">
-          <div className="brand-lockup brand-dark"><img className="sidebar-brand-icon" src="/Aprova/icons/aprova-sidebar.svg" alt="" /><span>APROVA</span></div>
+          <div className="brand-lockup brand-dark"><img className="sidebar-brand-icon" src={theme === "dark" ? "/Aprova/icons/aprova-sidebar-dark.svg" : "/Aprova/icons/aprova-sidebar.svg"} alt="" /><span>APROVA</span></div>
           <button className="sidebar-collapse-toggle" type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Minimizar menu lateral"} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? "Expandir menu" : "Minimizar menu"}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d={sidebarCollapsed ? "m9 5 7 7-7 7" : "m15 5-7 7 7 7"} /></svg>
           </button>
