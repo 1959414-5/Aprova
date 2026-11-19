@@ -59,6 +59,9 @@ Mais detalhes: [docs/PROFESSOR-IA.md](docs/PROFESSOR-IA.md).
 ## Plano Flexível
 O candidato escolhe blocos de 15, 40 ou 90 minutos. A escolha fica salva no navegador e é copiada para cada sessão. O cronômetro faz contagem regressiva, registra o marco de meta atingida e continua em tempo excedido até o usuário salvar ou cancelar. O aviso interno sempre funciona; notificações do navegador são opcionais e dependem de permissão concedida pelo usuário.
 
+## Diagnóstico inicial
+O diagnóstico tem 22 questões (3 de cada disciplina geral e 10 específicas). A sequência selecionada fica em `assessment_runs.metadata.question_ids`; ao recarregar, `diagnostic-session` recupera as respostas e a próxima questão pendente. O gabarito e as explicações de correção permanecem no servidor. Uma única tentativa diagnóstica ativa por usuário/concurso é garantida por índice único parcial e RLS.
+
 ## Segurança
 O repositório é público. Não inclua service-role/secret key, chaves de provedores de IA, credenciais ou gabaritos nas fontes versionadas. A publishable key é apropriada para o frontend com RLS habilitado.
 
