@@ -458,8 +458,14 @@ export default function App() {
       } catch { /* storage unavailable */ }
     };
     window.addEventListener("scroll", save, { passive: true });
-    save();
-    return () => window.removeEventListener("scroll", save);
+    return () => {
+      try {
+        const positions = JSON.parse(sessionStorage.getItem("aprova-scroll-positions") || "{}");
+        positions[view] = window.scrollY;
+        sessionStorage.setItem("aprova-scroll-positions", JSON.stringify(positions));
+      } catch { /* storage unavailable */ }
+      window.removeEventListener("scroll", save);
+    };
   }, [view]);
   useEffect(() => {
     if (booting) return;
