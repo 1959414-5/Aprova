@@ -701,6 +701,19 @@ export default function App() {
   }, [user?.id, loadDashboard]);
 
   const allTopics = useMemo(() => subjectRows.flatMap((row) => row.topics || []), [subjectRows]);
+  useEffect(() => {
+    if (selectedTopic?.id) {
+      try { localStorage.setItem("aprova-selected-topic", selectedTopic.id); } catch { /* storage unavailable */ }
+    }
+  }, [selectedTopic]);
+  useEffect(() => {
+    if (!allTopics.length || selectedTopic) return;
+    try {
+      const savedId = localStorage.getItem("aprova-selected-topic");
+      const match = allTopics.find((topic) => topic.id === savedId);
+      if (match) setSelectedTopic(match);
+    } catch { /* storage unavailable */ }
+  }, [allTopics, selectedTopic]);
   const topicProgressById = useMemo(() => new Map(topicProgressRows.map((item) => [item.topic_id, item])), [topicProgressRows]);
   const completedTopicIds = useMemo(() => new Set(topicProgressRows.filter((item) => item.status === "concluido").map((item) => item.topic_id)), [topicProgressRows]);
   const inProgressTopicIds = useMemo(() => new Set(topicProgressRows.filter((item) => item.status === "em_andamento").map((item) => item.topic_id)), [topicProgressRows]);
