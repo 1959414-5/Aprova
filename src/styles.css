@@ -1994,3 +1994,103 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   .essay-lesson-session-actions .button { width: 100%; }
   .essay-active-timer { align-items: flex-start; }
 }
+
+/* Barra lateral recolhível. Mantém a escala tipográfica e os ícones originais. */
+.sidebar-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 55px;
+}
+.sidebar-top-row .brand-dark { margin: 0 0 0 10px; }
+.sidebar-collapse-toggle {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--mint-deep);
+  box-shadow: var(--shadow-out-sm);
+  transition: background .18s, border-color .18s, box-shadow .18s;
+}
+.sidebar-collapse-toggle:hover {
+  border-color: var(--mint-strong);
+  box-shadow: var(--shadow-mint);
+}
+.sidebar-collapse-toggle svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.nav-label { min-width: 0; }
+.nav-svg {
+  display: block;
+  width: 19px;
+  height: 19px;
+  stroke-width: 2.5;
+}
+@media (min-width: 721px) {
+  .sidebar,
+  .main-area {
+    transition: width .2s ease, margin-left .2s ease;
+  }
+  .sidebar-is-collapsed .sidebar {
+    width: 78px;
+    padding-left: 9px;
+    padding-right: 9px;
+  }
+  .sidebar-is-collapsed .main-area {
+    margin-left: 78px;
+    width: calc(100% - 78px);
+  }
+  .sidebar-is-collapsed .sidebar-top-row {
+    flex-direction: column;
+    gap: 13px;
+    margin-bottom: 25px;
+  }
+  .sidebar-is-collapsed .sidebar-top-row .brand-dark {
+    margin: 0;
+  }
+  .sidebar-is-collapsed .brand-dark > span:not(.brand-mark),
+  .sidebar-is-collapsed .sidebar-label,
+  .sidebar-is-collapsed .nav-label,
+  .sidebar-is-collapsed .sidebar-exam-card,
+  .sidebar-is-collapsed .user-copy {
+    display: none;
+  }
+  .sidebar-is-collapsed .brand-mark {
+    width: 36px;
+    height: 36px;
+  }
+  .sidebar-is-collapsed .side-nav { gap: 7px; }
+  .sidebar-is-collapsed .nav-link {
+    justify-content: center;
+    gap: 0;
+    padding: 11px 5px;
+  }
+  .sidebar-is-collapsed .nav-icon {
+    width: 22px;
+    height: 22px;
+  }
+  .sidebar-is-collapsed .sidebar-spacer { min-height: 12px; }
+  .sidebar-is-collapsed .sidebar-user {
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 0 0;
+  }
+  .sidebar-is-collapsed .sidebar-user .icon-button { padding: 3px; }
+}
+@media (max-width: 720px) {
+  .sidebar-top-row,
+  .sidebar-collapse-toggle { display: none; }
+}
