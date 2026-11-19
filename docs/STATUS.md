@@ -26,7 +26,7 @@
 - 45 flashcards publicados, um por tópico.
 - `ai_tutor_usage` separa consumo do tutor e correção de redação.
 - `essay_submissions` possui proteção para usuário editar apenas rascunhos; pontuações são atualizadas pelo servidor.
-- Tentativas diagnósticas vazias duplicadas de teste foram encerradas como abandonadas, sem excluir respostas. Uma única tentativa vazia foi preservada para retomada e recebeu a sequência salva de 22 questões.
+- Quatro tentativas diagnósticas vazias duplicadas foram encerradas como abandonadas, sem excluir respostas. Uma única tentativa vazia foi preservada; na primeira retomada após o deploy, `diagnostic-session` gravará a sequência de 22 questões e recuperará as respostas que existirem.
 
 ## Integração de IA
 - `OPENAI_API_KEY` deve ficar em Supabase → Edge Functions → Secrets.
