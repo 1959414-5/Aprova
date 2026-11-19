@@ -10,8 +10,12 @@
 - Simulado de 70 questões, distribuição oficial e nota ponderada server-side.
 - Gabarito oculto durante simulado.
 - Professor IA contextualizado pela aula; Edge Function autenticada `study-tutor`.
-- Laboratório de Redação: temas, salvamento de rascunho, contador de 20–30 linhas e correção por quatro critérios, via `essay-feedback`.
+- Curso de Redação: seis aulas autorais em quatro etapas (Aprender, Praticar, Analisar e Escrever), com exercícios objetivos e explicação, texto-modelo comentado e rubrica do edital.
+- `essay_learning_progress`: progresso e respostas de exercícios individualizados por usuário, com RLS.
+- Laboratório de Redação preservado: temas, salvamento de rascunho, contador de 20–30 linhas e correção formativa por quatro critérios, via `essay-feedback`.
 - Revisões e flashcards: 45 cartões iniciais e agendamento de 1, 2, 4, 7 e 15 dias.
+
+- O curso trabalha o gênero dissertativo-argumentativo sobre questões da atualidade e explicita os limites de 20–30 linhas e os quatro critérios de 25 pontos do edital. Conteúdo e questões de aula são autorais/didáticos, não provas oficiais.
 
 ## Banco remoto
 - Supabase project ref: `ehsrjjflwrmmegfvupch`.
