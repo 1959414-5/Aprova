@@ -319,7 +319,7 @@ export const ESSAY_RUBRIC = [
     description: "Avalia a organização das ideias, a progressão do raciocínio e a articulação entre introdução, desenvolvimento e conclusão."
   },
   {
-    title: "Linguagem (coesão e norma gramatical)",
+    title: "Linguagem (coesão e atendimento à norma gramatical)",
     weight: "até 25 pontos",
     description: "Considera a escrita formal, a coesão, a clareza, o vocabulário, a concordância, a regência, a pontuação e a ortografia."
   }
