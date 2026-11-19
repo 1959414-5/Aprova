@@ -69,7 +69,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
   }
 
   try {
-    const userId = ctx.userClaims?.sub;
+    const userId = ctx.userClaims?.id;
     if (!userId) return json({ error: "Sessão não identificada." }, 401, headers);
 
     const apiKey = Deno.env.get("OPENAI_API_KEY");
