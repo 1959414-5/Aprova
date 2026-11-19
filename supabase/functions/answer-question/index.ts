@@ -54,14 +54,22 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
     }
 
     if (runId) {
-      const { data: run } = await ctx.supabaseAdmin
+      const { data: run, error: runCheckError } = await ctx.supabaseAdmin
         .from("assessment_runs")
-        .select("exam_id")
+        .select("exam_id, metadata")
         .eq("id", runId)
         .eq("user_id", userId)
         .maybeSingle();
-      if (!run || run.exam_id !== question.exam_id) {
+      if (runCheckError || !run || run.exam_id !== question.exam_id) {
         return Response.json({ error: "A questão não pertence ao concurso desta avaliação." }, { status: 400, headers: corsHeaders });
+      }
+      if (runType === "diagnostico") {
+        const allowedQuestionIds = Array.isArray(run.metadata?.question_ids)
+          ? run.metadata.question_ids
+          : [];
+        if (!allowedQuestionIds.includes(question.id)) {
+          return Response.json({ error: "Esta questão não faz parte da sequência salva deste diagnóstico." }, { status: 400, headers: corsHeaders });
+        }
       }
     }
 
