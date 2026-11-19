@@ -5,14 +5,14 @@ import { ESSAY_COURSE, ESSAY_MODEL_TEXT, ESSAY_RUBRIC } from "./data/essayCourse
 const EXAM_SLUG = "sbmg-2026-auxiliar-administrativo-financeiro";
 const EXAM_DAY = "2027-01-24";
 const NAV_ITEMS = [
-  { id: "dashboard", icon: "⌂", label: "Visão geral" },
-  { id: "study", icon: "▤", label: "Sala de estudos" },
-  { id: "tutor", icon: "✦", label: "Professor IA" },
-  { id: "simulations", icon: "▧", label: "Simulados" },
-  { id: "essay", icon: "✎", label: "Redação" },
-  { id: "reviews", icon: "↻", label: "Revisões" },
-  { id: "diagnostic", icon: "✓", label: "Diagnóstico" },
-  { id: "performance", icon: "↗", label: "Desempenho" },
+  { id: "dashboard", icon: "dashboard", label: "Visão geral" },
+  { id: "study", icon: "study", label: "Sala de estudos" },
+  { id: "tutor", icon: "tutor", label: "Professor IA" },
+  { id: "simulations", icon: "simulations", label: "Simulados" },
+  { id: "essay", icon: "essay", label: "Redação" },
+  { id: "reviews", icon: "reviews", label: "Revisões" },
+  { id: "diagnostic", icon: "diagnostic", label: "Diagnóstico" },
+  { id: "performance", icon: "performance", label: "Desempenho" },
 ];
 const SUBJECT_ICONS = {
   "lingua-portuguesa": "Aa",
@@ -27,6 +27,33 @@ const PRIORITY_LABELS = {
   normal: "Importante",
   complementary: "Complementar",
 };
+
+
+function NavIcon({ name }) {
+  const common = {
+    className: "nav-svg", viewBox: "0 0 24 24", fill: "none",
+    stroke: "currentColor", strokeWidth: 2.5, strokeLinecap: "round",
+    strokeLinejoin: "round", "aria-hidden": true, focusable: "false",
+  };
+  switch (name) {
+    case "dashboard":
+      return <svg {...common}><path d="M3.5 10.5 12 3.8l8.5 6.7v9a1.4 1.4 0 0 1-1.4 1.4H4.9a1.4 1.4 0 0 1-1.4-1.4z" /><path d="M9 20.8v-6.2h6v6.2" /></svg>;
+    case "study":
+      return <svg {...common}><path d="M4 4.2h12.2a3.8 3.8 0 0 1 3.8 3.8v12H7.5A3.5 3.5 0 0 1 4 16.5z" /><path d="M4 16.5A3.5 3.5 0 0 1 7.5 13H20" /><path d="M8 7.8h7M8 10.5h5" /></svg>;
+    case "simulations":
+      return <svg {...common}><rect x="5" y="4.5" width="14" height="17" rx="2" /><path d="M9 4.5V3h6v1.5M8.5 10h7M8.5 14h7M8.5 18h4" /></svg>;
+    case "essay":
+      return <svg {...common}><path d="m4 16.8-.9 4.1 4.1-.9L19.8 7.4a2.1 2.1 0 0 0-3-3z" /><path d="m14.9 6.4 3 3M4 4h7" /></svg>;
+    case "reviews":
+      return <svg {...common}><path d="M20 8.5A8.5 8.5 0 1 0 20.2 13" /><path d="M20 3.8v5h-5" /><path d="M12 7.5v5l3.2 1.8" /></svg>;
+    case "diagnostic":
+      return <svg {...common}><rect x="4.5" y="4.5" width="15" height="17" rx="2" /><path d="M9 4.5V3h6v1.5M8.2 12.5l2.4 2.4 5.2-5.2" /></svg>;
+    case "performance":
+      return <svg {...common}><path d="M4 20.5V4M4 20.5h16" /><path d="m7 15 4-4 3 2 5-6" /><path d="M16 7h3v3" /></svg>;
+    default:
+      return <svg {...common}><circle cx="12" cy="12" r="8" /></svg>;
+  }
+}
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric" }).format(value);
@@ -293,6 +320,12 @@ const ESSAY_PROMPTS = [
 
 export default function App() {
   const [session, setSession] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem("aprova-sidebar-collapsed") === "true"; }
+    catch { return false; }
+  });
+  const [assessmentConfirmAction, setAssessmentConfirmAction] = useState(null);
+  const [assessmentExitTarget, setAssessmentExitTarget] = useState("dashboard");
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem("aprova-theme") || "light"; }
     catch { return "light"; }
@@ -357,6 +390,11 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem("aprova-theme", theme); } catch { /* armazenamento indisponível */ }
   }, [theme]);
+
+  useEffect(() => {
+    try { localStorage.setItem("aprova-sidebar-collapsed", String(sidebarCollapsed)); }
+    catch { /* armazenamento indisponível */ }
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     if (view !== "diagnostic" && view !== "simulation") {
@@ -1121,7 +1159,7 @@ export default function App() {
     }
   }
 
-  async function startDiagnostic() {
+  async function beginDiagnostic() {
     if (!exam || !user || diagnosticStartLock.current) return;
     diagnosticStartLock.current = true;
     setBusy(true);
@@ -1176,6 +1214,38 @@ export default function App() {
       diagnosticStartLock.current = false;
       setBusy(false);
     }
+  }
+
+  function startDiagnostic() {
+    if (view === "diagnostic" && quizRunId) {
+      setNotice("O diagnóstico já está em andamento. Continue de onde parou.");
+      return;
+    }
+    setAssessmentConfirmAction("start-diagnostic");
+  }
+
+  async function confirmAssessmentAction() {
+    const action = assessmentConfirmAction;
+    const destination = assessmentExitTarget;
+    setAssessmentConfirmAction(null);
+    if (action === "start-diagnostic") {
+      await beginDiagnostic();
+      return;
+    }
+    if (action === "leave-diagnostic") {
+      await leaveAssessmentNow(destination);
+      return;
+    }
+    if (action === "finish-diagnostic") await finishDiagnosticNow();
+  }
+
+  function requestAssessmentExit(destination = "dashboard") {
+    if (quizMode === "diagnostico" && view === "diagnostic" && quizRunId) {
+      setAssessmentExitTarget(destination);
+      setAssessmentConfirmAction("leave-diagnostic");
+      return;
+    }
+    setView(destination);
   }
 
   async function startSimulation() {
@@ -1238,7 +1308,16 @@ export default function App() {
     }
   }
 
-  async function leaveAssessment() {
+  function leaveAssessment() {
+    if (quizMode === "diagnostico" && quizRunId) {
+      setAssessmentExitTarget("dashboard");
+      setAssessmentConfirmAction("leave-diagnostic");
+      return;
+    }
+    return leaveAssessmentNow("dashboard");
+  }
+
+  async function leaveAssessmentNow(destination = "dashboard") {
     if (quizRunId && user) {
       const { error } = await supabase.functions.invoke("finish-assessment", {
         body: {
@@ -1255,7 +1334,7 @@ export default function App() {
     setSelectedOption("");
     setFeedback(null);
     setResponses([]);
-    setView("dashboard");
+    setView(destination);
     if (user) await loadDashboard(user);
   }
 
@@ -1307,6 +1386,15 @@ export default function App() {
       return;
     }
 
+    if (quizMode === "diagnostico") {
+      setAssessmentConfirmAction("finish-diagnostic");
+      return;
+    }
+    await finishDiagnosticNow();
+  }
+
+  async function finishDiagnosticNow() {
+    if (!quizRunId || !user) return;
     setBusy(true);
     try {
       const elapsed = quizStartedAt ? Math.round((Date.now() - quizStartedAt) / 1000) : 0;
@@ -1346,14 +1434,19 @@ export default function App() {
   if (!user) return <AuthScreen theme={theme} setTheme={setTheme} />;
 
   return (
-    <div className="app-shell">
+    <div className={sidebarCollapsed ? "app-shell sidebar-is-collapsed" : "app-shell"}>
       <aside className="sidebar">
-        <div className="brand-lockup brand-dark"><span className="brand-mark">A</span><span>APROVA</span></div>
+        <div className="sidebar-top-row">
+          <div className="brand-lockup brand-dark"><span className="brand-mark">A</span><span>APROVA</span></div>
+          <button className="sidebar-collapse-toggle" type="button" onClick={() => setSidebarCollapsed((value) => !value)} aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Minimizar menu lateral"} aria-expanded={!sidebarCollapsed} title={sidebarCollapsed ? "Expandir menu" : "Minimizar menu"}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={sidebarCollapsed ? "m9 5 7 7-7 7" : "m15 5-7 7 7 7"} /></svg>
+          </button>
+        </div>
         <div className="sidebar-label">ÁREA DE ESTUDOS</div>
         <nav className="side-nav">
           {NAV_ITEMS.filter((item) => item.id !== "tutor").map((item) => (
-            <button key={item.id} className={view === item.id || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? startDiagnostic() : setView(item.id)}>
-              <span className="nav-icon">{item.icon}</span>{item.label}
+            <button key={item.id} title={sidebarCollapsed ? item.label : undefined} aria-label={item.label} className={view === item.id || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? startDiagnostic() : requestAssessmentExit(item.id)}>
+              <span className="nav-icon"><NavIcon name={item.id} /></span><span className="nav-label">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -1416,6 +1509,42 @@ export default function App() {
           </div>
         )}
         {busy && <div className="busy-line"><span /></div>}
+
+
+        {assessmentConfirmAction && (
+          <div className="lesson-confirm-backdrop" role="presentation">
+            <div className="lesson-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="assessment-confirm-title">
+              <span className="eyebrow">CONFIRMAÇÃO DO DIAGNÓSTICO</span>
+              <h3 id="assessment-confirm-title">
+                {assessmentConfirmAction === "start-diagnostic"
+                  ? "Iniciar o diagnóstico?"
+                  : assessmentConfirmAction === "leave-diagnostic"
+                    ? "Sair do diagnóstico?"
+                    : "Finalizar o diagnóstico?"}
+              </h3>
+              <p>
+                {assessmentConfirmAction === "start-diagnostic"
+                  ? "Serão carregadas 22 questões e o cronômetro começará. O diagnóstico só será criado depois desta confirmação."
+                  : assessmentConfirmAction === "leave-diagnostic"
+                    ? "A avaliação será encerrada. As respostas já enviadas poderão compor um resultado parcial; questões ainda não respondidas não serão registradas."
+                    : "Suas respostas serão enviadas para correção e o resultado será calculado. Depois disso, esta tentativa não poderá continuar."}
+              </p>
+              <p className="lesson-confirm-warning">
+                {assessmentConfirmAction === "start-diagnostic"
+                  ? "Se você apenas queria abrir a área, escolha voltar. Nenhuma tentativa será iniciada."
+                  : assessmentConfirmAction === "leave-diagnostic"
+                    ? "Só confirme se realmente deseja interromper esta tentativa."
+                    : "Confirme somente depois de revisar suas respostas."}
+              </p>
+              <div className="lesson-confirm-actions">
+                <button className="button button-secondary" onClick={() => setAssessmentConfirmAction(null)} disabled={busy}>Não, voltar</button>
+                <button className="button button-primary" onClick={confirmAssessmentAction} disabled={busy}>
+                  {busy ? "Processando..." : assessmentConfirmAction === "start-diagnostic" ? "Sim, iniciar diagnóstico" : assessmentConfirmAction === "leave-diagnostic" ? "Sim, sair" : "Sim, finalizar diagnóstico"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {view === "dashboard" && (
           <section className="content-section">
