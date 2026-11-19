@@ -1386,6 +1386,7 @@ export default function App() {
               <div className="essay-rule"><strong>25</strong><span>pontos por critério</span></div>
               <div className="essay-rule"><strong>100</strong><span>pontos possíveis</span></div>
             </div>
+            <div className="notice notice-success essay-edital-note"><strong>Conforme o edital:</strong> texto dissertativo-argumentativo sobre questões da atualidade, de 20 a 30 linhas. A nota mínima prevista para a redação é 50/100.</div>
             <div className="essay-workspace">
               <div className="panel essay-editor">
                 <div className="panel-heading">
