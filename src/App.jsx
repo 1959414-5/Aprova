@@ -6,6 +6,7 @@ const EXAM_DAY = "2027-01-24";
 const NAV_ITEMS = [
   { id: "dashboard", icon: "⌂", label: "Visão geral" },
   { id: "study", icon: "▤", label: "Sala de estudos" },
+  { id: "tutor", icon: "✦", label: "Professor IA" },
   { id: "diagnostic", icon: "✓", label: "Diagnóstico" },
   { id: "performance", icon: "↗", label: "Desempenho" },
 ];
@@ -123,7 +124,7 @@ function AuthScreen({ theme, setTheme }) {
   );
 }
 
-function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onCancel, onClose }) {
+function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onCancel, onAskTutor, onClose }) {
   const content = lesson?.content || {};
   const hasActiveSession = activeSession?.topicId === topic.id;
   const anotherSessionActive = Boolean(activeSession) && !hasActiveSession;
@@ -150,6 +151,7 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
       </>}
       <div className="lesson-session-footer">
         <div className="lesson-progress-copy"><span className="eyebrow">SEU PROGRESSO</span><strong>{progress?.status === "concluido" ? "Tópico concluído" : progress?.status === "em_andamento" ? "Em andamento" : "Ainda não iniciado"}</strong><small>Bloco planejado: {plannedMinutes} min</small></div>
+        <div className="lesson-tutor-action"><button className="button button-secondary" onClick={onAskTutor}>Tirar dúvida com o Professor IA</button></div>
         {hasActiveSession ? <div className="lesson-timer-controls">
           <div className="lesson-timer"><span className="session-live-dot" />{formatElapsed(elapsedSeconds)}</div>
           <button className="button button-secondary" onClick={() => onFinish(false)} disabled={busy}>Salvar sessão</button>
@@ -207,6 +209,12 @@ export default function App() {
   const [sessions, setSessions] = useState([]);
   const [topicLessons, setTopicLessons] = useState([]);
   const [topicProgressRows, setTopicProgressRows] = useState([]);
+  const [tutorTopicId, setTutorTopicId] = useState("");
+  const [tutorMessages, setTutorMessages] = useState([]);
+  const [tutorDraft, setTutorDraft] = useState("");
+  const [tutorBusy, setTutorBusy] = useState(false);
+  const [tutorRemaining, setTutorRemaining] = useState(null);
+  const [tutorError, setTutorError] = useState("");
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [plannedMinutes, setPlannedMinutes] = useState(40);
@@ -411,6 +419,54 @@ export default function App() {
   function cancelTopicSession() {
     setActiveSession(null);
     setNotice("Sessão cancelada. Nenhum tempo foi registrado.");
+  }
+
+  async function sendTutorMessage() {
+    const message = tutorDraft.trim();
+    if (!message || tutorBusy) return;
+    if (!tutorTopicId) {
+      setTutorError("Selecione um tópico do edital para contextualizar sua dúvida.");
+      return;
+    }
+    const previous = tutorMessages;
+    const userMessage = { role: "user", content: message };
+    setTutorMessages([...previous, userMessage]);
+    setTutorDraft("");
+    setTutorBusy(true);
+    setTutorError("");
+    try {
+      const { data, error } = await supabase.functions.invoke("study-tutor", {
+        body: {
+          topic_id: tutorTopicId,
+          message,
+          history: previous.slice(-8).map((item) => ({ role: item.role, content: item.content })),
+        },
+      });
+      if (error) {
+        let detail = error.message || "Serviço indisponível.";
+        try {
+          const body = await error.context?.json?.();
+          if (body?.error) detail = body.error;
+        } catch { /* mantém mensagem genérica */ }
+        throw new Error(detail);
+      }
+      if (data?.error) throw new Error(data.error);
+      const reply = String(data?.reply || "").trim();
+      if (!reply) throw new Error("O Professor IA não retornou uma resposta.");
+      setTutorMessages([...previous, userMessage, { role: "assistant", content: reply }]);
+      if (typeof data.remaining_today === "number") setTutorRemaining(data.remaining_today);
+    } catch (err) {
+      const detail = err.message || "Não foi possível falar com o Professor IA.";
+      setTutorError(detail);
+      setTutorMessages([...previous, userMessage, {
+        role: "assistant",
+        content: detail.includes("OPENAI_API_KEY")
+          ? "O Professor IA ainda está em configuração. A chave de acesso do provedor precisa ser adicionada aos Secrets do servidor."
+          : "Não consegui responder agora. " + detail,
+      }]);
+    } finally {
+      setTutorBusy(false);
+    }
   }
 
   async function startDiagnostic() {
@@ -689,9 +745,70 @@ export default function App() {
                 onStart={() => startTopicSession(selectedTopic)}
                 onFinish={(complete) => finishTopicSession(complete)}
                 onCancel={cancelTopicSession}
+                onAskTutor={() => { setTutorTopicId(selectedTopic.id); setView("tutor"); }}
                 onClose={() => setSelectedTopic(null)}
               />
             )}
+          </section>
+        )}
+
+        {view === "tutor" && (
+          <section className="content-section tutor-view">
+            <div className="page-heading">
+              <span className="eyebrow">TUTOR DE ESTUDOS · SBMG 2026</span>
+              <h1>Professor IA</h1>
+              <p className="muted">Tire dúvidas sobre a aula selecionada. O tutor usa o conteúdo do tópico e explica desde o básico.</p>
+            </div>
+            <div className="tutor-layout">
+              <aside className="panel tutor-context">
+                <span className="eyebrow">CONTEXTO DA DÚVIDA</span>
+                <label className="tutor-select-label" htmlFor="tutor-topic-select">Tópico do edital</label>
+                <select id="tutor-topic-select" className="tutor-topic-select" value={tutorTopicId} onChange={(event) => { setTutorTopicId(event.target.value); setTutorMessages([]); setTutorError(""); }}>
+                  <option value="">Selecione um tópico</option>
+                  {subjectRows.map((row) => (
+                    <optgroup key={row.id} label={row.subjects?.name || "Disciplina"}>
+                      {(row.topics || []).map((topic) => <option key={topic.id} value={topic.id}>{topic.title}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="muted small-copy">O professor recebe o texto da aula selecionada para manter as explicações alinhadas ao edital.</p>
+                {tutorRemaining !== null && <div className="tutor-limit"><strong>{tutorRemaining}</strong><span>perguntas restantes hoje</span></div>}
+                <div className="plan-tip"><span>✦</span><p><strong>Como estudar com o tutor</strong><br />Peça uma explicação, solicite outro exemplo ou peça uma pergunta curta para conferir se entendeu.</p></div>
+              </aside>
+              <div className="panel tutor-chat">
+                <div className="tutor-chat-head">
+                  <div className="tutor-avatar">✦</div>
+                  <div><strong>Professor IA</strong><small>{allTopics.find((topic) => topic.id === tutorTopicId)?.title || "Aguardando tópico selecionado"}</small></div>
+                  <span className="tutor-status">Aulas do edital</span>
+                </div>
+                <div className="tutor-messages">
+                  {tutorMessages.length === 0 && (
+                    <div className="tutor-empty">
+                      <div className="tutor-empty-icon">✦</div>
+                      <h2>Vamos aprender passo a passo.</h2>
+                      <p>Selecione um tópico e envie sua primeira dúvida. O professor pode explicar de outra forma, montar exemplos e propor exercícios.</p>
+                      <div className="tutor-prompts">
+                        {["Explique esse assunto desde o começo.", "Dê um exemplo prático relacionado ao cargo.", "Faça uma pergunta para testar meu entendimento."].map((prompt) => (
+                          <button key={prompt} onClick={() => setTutorDraft(prompt)}>{prompt}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {tutorMessages.map((item, index) => (
+                    <div className={item.role === "user" ? "tutor-message user" : "tutor-message assistant"} key={index}>
+                      <span>{item.role === "user" ? "Você" : "Professor IA"}</span>
+                      <p>{item.content}</p>
+                    </div>
+                  ))}
+                  {tutorBusy && <div className="tutor-typing"><span /><span /><span /> Professor está preparando a explicação...</div>}
+                </div>
+                {tutorError && <div className="notice notice-error tutor-error">{tutorError}</div>}
+                <form className="tutor-composer" onSubmit={(event) => { event.preventDefault(); sendTutorMessage(); }}>
+                  <textarea value={tutorDraft} onChange={(event) => setTutorDraft(event.target.value)} placeholder="Escreva sua dúvida sobre o tópico selecionado..." rows={3} maxLength={1800} disabled={tutorBusy} />
+                  <div><small className="muted">{tutorDraft.length}/1800 caracteres · O histórico fica nesta sessão do navegador.</small><button className="button button-primary" type="submit" disabled={tutorBusy || !tutorDraft.trim() || !tutorTopicId}>{tutorBusy ? "Consultando..." : "Enviar pergunta"} →</button></div>
+                </form>
+              </div>
+            </div>
           </section>
         )}
 

@@ -1,31 +1,35 @@
 # Estado do projeto — 19/11/2026
 
 ## Implementado
-- App React/Vite publicado no GitHub Pages, com tema claro/escuro e layout responsivo.
-- Supabase Auth e perfil individual; dados do candidato isolados por RLS.
+- App React/Vite publicado no GitHub Pages, tema claro/escuro e layout responsivo.
+- Supabase Auth e perfil individual.
 - Painel, 5 disciplinas e 45 tópicos do Anexo III.
-- 45 aulas autorais em `topic_lessons`, também versionadas em `content/lessons.json`.
-- Aulas com objetivos, explicação, exemplo resolvido, resumo, erros comuns e prática.
-- `topic_progress` separa conclusão do tópico de tempo de estudo.
-- Sessões cronometradas não são gravadas por cliques na lista; tempo só é salvo ao finalizar.
-- Diagnóstico inicial com 22 questões autorais. Gabarito protegido e questões marcadas pendentes de revisão humana.
-- Edge Function `answer-question` exige autenticação e corrige no servidor.
+- 45 aulas autorais com objetivos, explicações, exemplos, resumos, erros comuns e prática.
+- `topic_progress` separa conclusão do tópico de tempo efetivo de estudo.
+- Sessões cronometradas: tempo só é salvo ao finalizar uma sessão.
+- Diagnóstico inicial com 22 questões autorais, não oficiais e pendentes de revisão humana.
+- Edge Function `answer-question` autenticada; gabarito protegido.
+- Edge Function `study-tutor` implantada e autenticada, com limite de 35 chamadas/dia/conta e chave lida somente em secret server-side.
+- UI do Professor IA ligada à Edge Function.
 
 ## Supabase remoto
 - Project ref: `ehsrjjflwrmmegfvupch`.
-- RLS habilitado nas tabelas públicas.
-- Tabelas adicionais `topic_lessons` e `topic_progress`, com privilégios e políticas restritivas.
-- Conta de teste: perfil preservado; 0 sessões, 0 tentativas e 0 simulados vazios após limpeza autorizada.
-- Banco das questões autorais: 22, com explicações e vínculo de tópico; `is_verified=false` até revisão humana.
+- 45 aulas publicadas para 45 tópicos.
+- `topic_lessons`, `topic_progress` e `ai_tutor_usage` com RLS e privilégios explícitos.
+- Conta de teste: perfil preservado; 0 sessões, 0 tentativas, 0 diagnósticos vazios.
+- Banco inicial: 22 questões autorais, `is_verified=false` até revisão humana.
 
-## Pendências
-1. Testar aulas e sessões no navegador com a conta real.
-2. Professor IA (depende de configurar a chave de API do provedor no Supabase Edge Function Secrets).
-3. Ampliar e revisar o banco de questões; importar prova SBMG 2019 separadamente, conferindo caderno e gabarito.
+## Para ativar o Professor IA
+Adicionar `OPENAI_API_KEY` em Supabase → Edge Functions → Secrets. Opcionalmente configurar `OPENAI_MODEL`. Consultar `docs/PROFESSOR-IA.md`. A chave não deve ficar no GitHub ou navegador. O faturamento da API é separado da assinatura ChatGPT.
+
+## Ainda pendente
+1. Teste real das aulas e sessões no navegador.
+2. Ativar e testar Professor IA após adicionar a chave.
+3. Ampliar/revisar o banco e importar prova de 2019 separadamente.
 4. Simulado completo de 70 questões com distribuição oficial.
 5. Laboratório de redação com os quatro critérios do edital.
 6. Revisão espaçada e flashcards.
 7. Habilitar Leaked Password Protection no Supabase Auth.
 
 ## Segurança
-O repositório GitHub é público. Não versionar secrets, gabaritos ou credenciais. Chaves secret/service-role e credenciais de modelos ficam somente no servidor. As 22 questões autorais não foram marcadas como verificadas por revisão humana.
+O repositório é público. Não versionar secrets, gabaritos ou credenciais. A chave publishable é usada no cliente com RLS; chaves secret/service-role e OpenAI ficam no servidor. As 22 questões autorais não foram verificadas por revisão humana.
