@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
+import { ESSAY_COURSE, ESSAY_MODEL_TEXT, ESSAY_RUBRIC } from "./data/essayCourse";
 
 const EXAM_SLUG = "sbmg-2026-auxiliar-administrativo-financeiro";
 const EXAM_DAY = "2027-01-24";
@@ -169,6 +170,40 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
   );
 }
 
+
+function EssayExerciseCard({ lesson, progress, onAnswer, disabled = false }) {
+  const chosen = progress?.exercise_answers?.selected_option;
+  const answered = Number.isInteger(chosen);
+  const correct = answered && chosen === lesson.exercise.correctIndex;
+  return (
+    <section className="essay-exercise-card">
+      <div className="essay-exercise-head">
+        <span className="eyebrow">EXERCÍCIO · AULA {String(lesson.number).padStart(2, "0")}</span>
+        {answered && <span className={correct ? "essay-exercise-status correct" : "essay-exercise-status incorrect"}>{correct ? "Acertou" : "Revise"}</span>}
+      </div>
+      <h3>{lesson.exercise.prompt}</h3>
+      <div className="essay-exercise-options">
+        {lesson.exercise.options.map((option, index) => {
+          const selected = answered && chosen === index;
+          const isAnswer = index === lesson.exercise.correctIndex;
+          const statusClass = answered && isAnswer ? " correct" : selected && !correct ? " incorrect" : "";
+          return (
+            <button key={index} className={"essay-exercise-option" + (selected ? " selected" : "") + statusClass} onClick={() => onAnswer(lesson, index)} disabled={disabled}>
+              <span>{String.fromCharCode(65 + index)}</span><span>{option}</span>
+            </button>
+          );
+        })}
+      </div>
+      {answered && (
+        <div className={correct ? "essay-exercise-feedback correct" : "essay-exercise-feedback incorrect"}>
+          <strong>{correct ? "Resposta correta." : "Ainda não. Veja a explicação:"}</strong>
+          <p>{lesson.exercise.explanation}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function StatCard({ label, value, helper, icon }) {
   return <div className="stat-card"><div className="stat-card-top"><span>{label}</span><i>{icon}</i></div><strong>{value}</strong><small>{helper}</small></div>;
 }
@@ -235,6 +270,11 @@ export default function App() {
   const [essayBusy, setEssayBusy] = useState(false);
   const [essayNotice, setEssayNotice] = useState("");
   const [essayEvaluation, setEssayEvaluation] = useState(null);
+  const [essayLearningProgress, setEssayLearningProgress] = useState([]);
+  const [essayLearningTab, setEssayLearningTab] = useState("learn");
+  const [activeEssayLessonId, setActiveEssayLessonId] = useState("fundamentos");
+  const [essayLearningBusy, setEssayLearningBusy] = useState(false);
+  const [essayLearningNotice, setEssayLearningNotice] = useState("");
   const [flashcards, setFlashcards] = useState([]);
   const [flashcardReviews, setFlashcardReviews] = useState([]);
   const [flashcardRevealed, setFlashcardRevealed] = useState(false);
@@ -351,6 +391,11 @@ export default function App() {
         .eq("user_id", currentUser.id).order("created_at", { ascending: false });
       if (essayError) throw essayError;
 
+      const { data: essayLearningData, error: essayLearningError } = await supabase.from("essay_learning_progress")
+        .select("lesson_id, exercise_answers, completed, last_activity_at, completed_at")
+        .eq("user_id", currentUser.id);
+      if (essayLearningError) throw essayLearningError;
+
       const { data: flashcardData, error: flashcardError } = await supabase.from("flashcards")
         .select("id, topic_id, front, back, difficulty")
         .eq("is_published", true);
@@ -379,6 +424,7 @@ export default function App() {
       setTopicLessons(lessonsData || []);
       setTopicProgressRows(progressData || []);
       setEssaySubmissions(essayData || []);
+      setEssayLearningProgress(essayLearningData || []);
       setFlashcards(flashcardData || []);
       setFlashcardReviews(flashcardReviewData || []);
     } catch (err) {
@@ -401,6 +447,10 @@ export default function App() {
   const totalStudyMinutes = sessions.reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
   const selectedLesson = selectedTopic ? topicLessons.find((item) => item.topic_id === selectedTopic.id) : null;
   const currentEssayPrompt = ESSAY_PROMPTS.find((item) => item.id === essayPromptId) || ESSAY_PROMPTS[0];
+  const essayLessonProgressById = useMemo(() => new Map(essayLearningProgress.map((item) => [item.lesson_id, item])), [essayLearningProgress]);
+  const activeEssayLesson = ESSAY_COURSE.find((item) => item.id === activeEssayLessonId) || ESSAY_COURSE[0];
+  const completedEssayLessons = essayLearningProgress.filter((item) => item.completed).length;
+  const essayLearningPercent = Math.round((completedEssayLessons / ESSAY_COURSE.length) * 100);
   const essayLineCount = essayText.trim() ? essayText.trim().split(/\r?\n/).length : 0;
   const latestFlashcardReviewById = useMemo(() => {
     const map = new Map();
@@ -543,6 +593,59 @@ export default function App() {
     } finally {
       setTutorBusy(false);
     }
+  }
+
+
+  async function saveEssayLearningProgress(lessonId, patch) {
+    if (!user || essayLearningBusy) return;
+    const existing = essayLessonProgressById.get(lessonId);
+    const now = new Date().toISOString();
+    const nextRow = {
+      user_id: user.id,
+      lesson_id: lessonId,
+      exercise_answers: patch.exercise_answers ?? existing?.exercise_answers ?? {},
+      completed: patch.completed ?? existing?.completed ?? false,
+      last_activity_at: now,
+      completed_at: patch.completed === true
+        ? now
+        : patch.completed === false
+          ? null
+          : existing?.completed_at ?? null,
+      updated_at: now,
+    };
+
+    setEssayLearningBusy(true);
+    setEssayLearningNotice("");
+    try {
+      const { data, error } = await supabase.from("essay_learning_progress")
+        .upsert(nextRow, { onConflict: "user_id,lesson_id" })
+        .select("lesson_id, exercise_answers, completed, last_activity_at, completed_at")
+        .single();
+      if (error) throw error;
+      setEssayLearningProgress((previous) => [
+        ...previous.filter((item) => item.lesson_id !== lessonId),
+        data,
+      ]);
+      setEssayLearningNotice(patch.completed === true
+        ? "Aula concluída. Seu progresso foi salvo."
+        : patch.exercise_answers
+          ? "Resposta salva no seu progresso."
+          : "Progresso salvo.");
+    } catch (error) {
+      setEssayLearningNotice(error.message || "Não foi possível salvar seu progresso. Tente novamente.");
+    } finally {
+      setEssayLearningBusy(false);
+    }
+  }
+
+  function answerEssayExercise(lesson, selectedOption) {
+    const existing = essayLessonProgressById.get(lesson.id);
+    return saveEssayLearningProgress(lesson.id, {
+      exercise_answers: {
+        ...(existing?.exercise_answers || {}),
+        selected_option: selectedOption,
+      },
+    });
   }
 
   function newEssayDraft() {
@@ -1122,9 +1225,161 @@ export default function App() {
           <section className="content-section">
             <div className="page-heading">
               <span className="eyebrow">PROVA DE REDAÇÃO · EDITAL 001/2026</span>
-              <h1>Laboratório de Redação</h1>
-              <p className="muted">Treine textos dissertativo-argumentativos e receba uma avaliação formativa pelos quatro critérios do edital.</p>
+              <h1>Redação: aprender e praticar</h1>
+              <p className="muted">Aprenda a construir um texto dissertativo-argumentativo desde o início. Depois, pratique, analise exemplos e faça sua própria redação.</p>
             </div>
+
+            <div className="essay-course-progress panel">
+              <div className="essay-course-progress-copy">
+                <span className="eyebrow">SUA TRILHA DE APRENDIZAGEM</span>
+                <strong>{completedEssayLessons} de {ESSAY_COURSE.length} aulas concluídas</strong>
+                <small>{essayLearningPercent}% do curso concluído · As respostas e o progresso ficam salvos na sua conta.</small>
+              </div>
+              <div className="essay-course-progress-meter"><span style={{ width: essayLearningPercent + "%" }} /></div>
+            </div>
+
+            <nav className="essay-learning-tabs" aria-label="Etapas do curso de redação">
+              {[
+                ["learn", "Aprender", "book"],
+                ["practice", "Praticar", "puzzle"],
+                ["analyze", "Analisar", "file"],
+                ["write", "Escrever", "pen"],
+              ].map(([id, label, icon], index) => (
+                <button key={id} className={essayLearningTab === id ? "essay-learning-tab active" : "essay-learning-tab"} onClick={() => setEssayLearningTab(id)}>
+                  <span className="essay-learning-tab-number">0{index + 1}</span>
+                  <strong>{label}</strong>
+                </button>
+              ))}
+            </nav>
+
+            {essayLearningNotice && <div className={essayLearningNotice.includes("não foi possível") ? "notice notice-error" : "notice notice-success"}>{essayLearningNotice}</div>}
+
+            {essayLearningTab === "learn" && (
+              <div className="essay-course-layout">
+                <aside className="panel essay-course-index">
+                  <div className="panel-heading">
+                    <div><span className="eyebrow">PASSO A PASSO</span><h2>Conteúdo das aulas</h2></div>
+                  </div>
+                  {ESSAY_COURSE.map((lesson) => {
+                    const progress = essayLessonProgressById.get(lesson.id);
+                    return (
+                      <button key={lesson.id} className={activeEssayLessonId === lesson.id ? "essay-course-index-item active" : "essay-course-index-item"} onClick={() => setActiveEssayLessonId(lesson.id)}>
+                        <span className={progress?.completed ? "essay-course-index-number done" : "essay-course-index-number"}>{progress?.completed ? "✓" : String(lesson.number).padStart(2, "0")}</span>
+                        <span className="essay-course-index-copy"><strong>{lesson.shortTitle}</strong><small>{lesson.duration} · {progress?.completed ? "Concluída" : "Pendente"}</small></span>
+                        <span className="essay-course-index-arrow">›</span>
+                      </button>
+                    );
+                  })}
+                </aside>
+
+                <article className="panel essay-course-lesson">
+                  <div className="essay-course-lesson-head">
+                    <span className="eyebrow">AULA {String(activeEssayLesson.number).padStart(2, "0")} DE {ESSAY_COURSE.length} · {activeEssayLesson.duration.toUpperCase()}</span>
+                    {essayLessonProgressById.get(activeEssayLesson.id)?.completed && <span className="essay-completed-label">✓ Concluída</span>}
+                  </div>
+                  <h2>{activeEssayLesson.title}</h2>
+                  <p className="essay-course-intro">{activeEssayLesson.introduction}</p>
+
+                  <div className="essay-course-objective">
+                    <strong>Ao final desta aula, você deverá:</strong>
+                    <span>{activeEssayLesson.objective}</span>
+                  </div>
+
+                  <div className="essay-course-sections">
+                    {activeEssayLesson.sections.map((section, index) => (
+                      <section className="essay-course-section" key={section.heading}>
+                        <span className="essay-course-section-number">{String(index + 1).padStart(2, "0")}</span>
+                        <div><h3>{section.heading}</h3><p>{section.text}</p></div>
+                      </section>
+                    ))}
+                  </div>
+
+                  <div className="essay-course-example">
+                    <span className="eyebrow">EXEMPLO COMENTADO</span>
+                    <h3>{activeEssayLesson.example.title}</h3>
+                    <div className="essay-example-version weak"><strong>EVITE</strong><p>{activeEssayLesson.example.weak}</p></div>
+                    <div className="essay-example-version strong"><strong>PREFIRA</strong><p>{activeEssayLesson.example.strong}</p></div>
+                    <ul>{activeEssayLesson.example.notes.map((note, index) => <li key={index}>{note}</li>)}</ul>
+                  </div>
+
+                  <EssayExerciseCard
+                    lesson={activeEssayLesson}
+                    progress={essayLessonProgressById.get(activeEssayLesson.id)}
+                    onAnswer={answerEssayExercise}
+                    disabled={essayLearningBusy}
+                  />
+
+                  <div className="essay-course-footer">
+                    <span className="muted small-copy">Conclua a leitura e responda ao exercício para fixar o conteúdo.</span>
+                    <button className="button button-primary" onClick={() => saveEssayLearningProgress(activeEssayLesson.id, { completed: true })} disabled={essayLearningBusy || essayLessonProgressById.get(activeEssayLesson.id)?.completed}>
+                      {essayLearningBusy ? "Salvando..." : essayLessonProgressById.get(activeEssayLesson.id)?.completed ? "Aula concluída ✓" : "Marcar aula como concluída"}
+                    </button>
+                  </div>
+                  <div className="essay-course-next">
+                    <button className="text-button" onClick={() => setEssayLearningTab("practice")}>Ir para os exercícios →</button>
+                    {activeEssayLesson.number < ESSAY_COURSE.length && <button className="text-button" onClick={() => setActiveEssayLessonId(ESSAY_COURSE[activeEssayLesson.number].id)}>Próxima aula: {ESSAY_COURSE[activeEssayLesson.number].shortTitle} →</button>}
+                  </div>
+                </article>
+              </div>
+            )}
+
+            {essayLearningTab === "practice" && (
+              <div className="essay-practice-view">
+                <div className="page-heading essay-subheading">
+                  <span className="eyebrow">FIXAÇÃO DO CONTEÚDO</span>
+                  <h2>Teste o que aprendeu</h2>
+                  <p className="muted">Responda às seis questões. A explicação aparece logo após a escolha e sua resposta fica salva.</p>
+                </div>
+                <div className="essay-practice-grid">
+                  {ESSAY_COURSE.map((lesson) => (
+                    <EssayExerciseCard
+                      key={lesson.id}
+                      lesson={lesson}
+                      progress={essayLessonProgressById.get(lesson.id)}
+                      onAnswer={answerEssayExercise}
+                      disabled={essayLearningBusy}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {essayLearningTab === "analyze" && (
+              <div className="essay-analysis-view">
+                <div className="page-heading essay-subheading">
+                  <span className="eyebrow">LEITURA ORIENTADA</span>
+                  <h2>Veja como as partes se conectam</h2>
+                  <p className="muted">Leia um texto curto e observe a função de cada parágrafo. O exemplo é didático e autoral, não é resposta oficial.</p>
+                </div>
+                <div className="panel essay-model-panel">
+                  <span className="eyebrow">TEXTO DIDÁTICO COMENTADO</span>
+                  <h2>{ESSAY_MODEL_TEXT.title}</h2>
+                  <div className="notice notice-success essay-model-notice">{ESSAY_MODEL_TEXT.notice}</div>
+                  {ESSAY_MODEL_TEXT.paragraphs.map((paragraph, index) => (
+                    <article className="essay-model-paragraph" key={paragraph.part}>
+                      <div className="essay-model-paragraph-label"><span>0{index + 1}</span><strong>{paragraph.part}</strong></div>
+                      <p>{paragraph.text}</p>
+                      <div className="essay-model-analysis"><strong>O que observar</strong><span>{paragraph.analysis}</span></div>
+                    </article>
+                  ))}
+                </div>
+                <div className="essay-rubric-heading">
+                  <span className="eyebrow">RÉGUA DE AUTOAVALIAÇÃO</span>
+                  <h2>Quatro critérios de correção</h2>
+                  <p className="muted small-copy">A plataforma usa esta rubrica formativa, com até 25 pontos por critério. A nota gerada pela IA é uma estimativa de estudo, não uma nota oficial.</p>
+                </div>
+                <div className="essay-rubric-grid">
+                  {ESSAY_RUBRIC.map((criterion, index) => (
+                    <article className="essay-rubric-card" key={criterion.title}>
+                      <span>0{index + 1}</span><h3>{criterion.title}</h3><strong>{criterion.weight}</strong><p>{criterion.description}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {essayLearningTab === "write" && (
+              <>
             <div className="essay-rules-grid">
               <div className="essay-rule"><strong>20–30</strong><span>linhas</span></div>
               <div className="essay-rule"><strong>4</strong><span>critérios</span></div>
@@ -1193,6 +1448,8 @@ export default function App() {
                 <p className="muted small-copy">{essayEvaluation.line_count_comment}</p>
                 <div className="notice notice-success">Esta pontuação é uma estimativa pedagógica gerada por IA, não uma nota oficial.</div>
               </div>
+            )}
+              </>
             )}
           </section>
         )}
