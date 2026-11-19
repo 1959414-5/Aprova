@@ -68,10 +68,25 @@ function shuffle(items) {
   return [...items].sort(() => Math.random() - 0.5);
 }
 function formatElapsed(seconds) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
+  const safeSeconds = Math.max(0, Math.floor(Number(seconds) || 0));
+  const h = Math.floor(safeSeconds / 3600);
+  const m = Math.floor((safeSeconds % 3600) / 60);
+  const s = safeSeconds % 60;
   return [h, m, s].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
+function getStudyPlanTimer(activeSession, elapsedSeconds) {
+  const plannedSeconds = Math.max(1, Number(activeSession?.plannedMinutes) || 40) * 60;
+  const remainingSeconds = plannedSeconds - Math.max(0, Number(elapsedSeconds) || 0);
+  const reached = remainingSeconds <= 0;
+  return {
+    reached,
+    value: reached ? "+" + formatElapsed(Math.abs(remainingSeconds)) : formatElapsed(remainingSeconds),
+    label: reached ? "Meta atingida · tempo excedido" : "Tempo restante para a meta",
+    plannedMinutes: Math.max(1, Number(activeSession?.plannedMinutes) || 40),
+    remainingSeconds: Math.max(0, remainingSeconds),
+    overtimeSeconds: Math.max(0, -remainingSeconds),
+  };
 }
 
 function AuthScreen({ theme, setTheme }) {
@@ -200,12 +215,19 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
         <div className="lesson-progress-copy">
           <span className="eyebrow">SEU PROGRESSO</span>
           <strong>{completed ? "Tópico concluído" : inProgress ? "Em andamento" : "Ainda não iniciado"}</strong>
-          <small>Bloco planejado: {plannedMinutes} min</small>
+          <small>Meta desta sessão: {hasActiveSession ? activeSession.plannedMinutes : plannedMinutes} min</small>
         </div>
         <div className="lesson-tutor-action"><button className="button button-secondary" onClick={onAskTutor}>Tirar dúvida com o Professor IA</button></div>
         {hasActiveSession ? (
           <div className="lesson-timer-controls">
-            <div className="lesson-timer"><span className="session-live-dot" />{formatElapsed(elapsedSeconds)}</div>
+            {(() => {
+              const timer = getStudyPlanTimer(activeSession, elapsedSeconds);
+              return <div className={timer.reached ? "lesson-timer goal-reached" : "lesson-timer"}>
+                <span className="session-live-dot" />
+                <strong>{timer.value}</strong>
+                <small>{timer.label}</small>
+              </div>;
+            })()}
             <button className="button button-secondary" onClick={() => onFinish(false)} disabled={busy}>Salvar sessão (sem concluir)</button>
             <button className="button button-primary" onClick={() => setCompletionMode("session")} disabled={busy}>Finalizar e concluir tópico</button>
             <button className="text-button" onClick={onCancel}>Cancelar sessão sem salvar</button>
@@ -368,10 +390,22 @@ export default function App() {
   const [flashcardBusy, setFlashcardBusy] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [selectedTopic, setSelectedTopic] = useState(null);
-  const [plannedMinutes, setPlannedMinutes] = useState(40);
+  const [plannedMinutes, setPlannedMinutes] = useState(() => {
+    try {
+      const stored = Number(localStorage.getItem("aprova-plan-minutes"));
+      return [15, 40, 90].includes(stored) ? stored : 40;
+    } catch {
+      return 40;
+    }
+  });
+  const [goalNotificationPermission, setGoalNotificationPermission] = useState(() => {
+    try { return typeof Notification === "undefined" ? "unsupported" : Notification.permission; }
+    catch { return "unsupported"; }
+  });
   const [activeSession, setActiveSession] = useState(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lessonSessionBusy, setLessonSessionBusy] = useState(false);
+  const notifiedGoalSessionRef = useRef(null);
   const diagnosticStartLock = useRef(false);
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [quizMode, setQuizMode] = useState("diagnostico");
@@ -397,6 +431,11 @@ export default function App() {
   }, [sidebarCollapsed]);
 
   useEffect(() => {
+    try { localStorage.setItem("aprova-plan-minutes", String(plannedMinutes)); }
+    catch { /* armazenamento indisponível */ }
+  }, [plannedMinutes]);
+
+  useEffect(() => {
     if (view !== "diagnostic" && view !== "simulation") {
       setQuizElapsedSeconds(0);
       return undefined;
@@ -414,13 +453,49 @@ export default function App() {
   useEffect(() => {
     if (!activeSession) {
       setElapsedSeconds(0);
+      notifiedGoalSessionRef.current = null;
       return undefined;
     }
-    const updateElapsed = () => setElapsedSeconds(Math.max(0, Math.floor((Date.now() - activeSession.startedAt) / 1000)));
+
+    const updateElapsed = () => {
+      const elapsed = Math.max(0, Math.floor((Date.now() - activeSession.startedAt) / 1000));
+      setElapsedSeconds(elapsed);
+
+      const targetSeconds = Math.max(1, Number(activeSession.plannedMinutes) || 40) * 60;
+      const hasReachedGoal = elapsed >= targetSeconds;
+      const alreadyNotified = Boolean(activeSession.goalReachedAt) || notifiedGoalSessionRef.current === activeSession.id;
+
+      if (hasReachedGoal && !alreadyNotified) {
+        const reachedAt = new Date(activeSession.startedAt + targetSeconds * 1000).toISOString();
+        notifiedGoalSessionRef.current = activeSession.id;
+        setActiveSession((current) => current?.id === activeSession.id
+          ? { ...current, goalReachedAt: reachedAt }
+          : current);
+        setNotice("Meta de " + (activeSession.plannedMinutes || 40) + " minutos atingida em “" + (activeSession.lessonTitle || activeSession.topicTitle) + "”. A sessão continua ativa; você pode salvar quando terminar.");
+
+        if (goalNotificationPermission === "granted" && typeof Notification !== "undefined") {
+          try {
+            new Notification("Meta de estudo atingida", {
+              body: (activeSession.lessonTitle || activeSession.topicTitle) + " · " + (activeSession.plannedMinutes || 40) + " minutos. A sessão continua ativa.",
+              tag: "aprova-study-goal-" + activeSession.id,
+            });
+          } catch { /* o aviso interno continua disponível */ }
+        }
+
+        supabase.from("lesson_study_sessions")
+          .update({ goal_reached_at: reachedAt })
+          .eq("id", activeSession.id)
+          .eq("status", "em_andamento")
+          .then(({ error }) => {
+            if (error) setNotice("Meta atingida. O aviso apareceu, mas não foi possível salvar o marco no histórico: " + error.message);
+          });
+      }
+    };
+
     updateElapsed();
     const interval = window.setInterval(updateElapsed, 1000);
     return () => window.clearInterval(interval);
-  }, [activeSession]);
+  }, [activeSession?.id, activeSession?.startedAt, activeSession?.plannedMinutes, activeSession?.goalReachedAt, goalNotificationPermission]);
 
   useEffect(() => {
     if (!supabase) {
@@ -480,7 +555,7 @@ export default function App() {
       if (sessionsError) throw sessionsError;
 
       const { data: activeLessonSessionData, error: activeLessonSessionError } = await supabase.from("lesson_study_sessions")
-        .select("id, lesson_type, topic_id, essay_lesson_id, lesson_title, started_at")
+        .select("id, lesson_type, topic_id, essay_lesson_id, lesson_title, started_at, planned_minutes, goal_reached_at")
         .eq("user_id", currentUser.id).eq("status", "em_andamento").maybeSingle();
       if (activeLessonSessionError) throw activeLessonSessionError;
 
@@ -530,7 +605,10 @@ export default function App() {
           lessonTitle: activeLessonSessionData.lesson_title,
           topicTitle: activeLessonSessionData.lesson_title,
           startedAt: new Date(activeLessonSessionData.started_at).getTime(),
+          plannedMinutes: Number(activeLessonSessionData.planned_minutes || 40),
+          goalReachedAt: activeLessonSessionData.goal_reached_at || null,
         };
+        setPlannedMinutes(restoredSession.plannedMinutes);
         setActiveSession(restoredSession);
         if (restoredSession.kind === "topico") {
           const restoredTopic = (subjectsData || []).flatMap((row) => row.topics || []).find((topic) => topic.id === restoredSession.topicId);
@@ -623,8 +701,10 @@ export default function App() {
           lesson_title: topic.title,
           status: "em_andamento",
           started_at: startedAtIso,
+          planned_minutes: plannedMinutes,
+          goal_reached_at: null,
         })
-        .select("id, started_at")
+        .select("id, started_at, planned_minutes, goal_reached_at")
         .single();
       if (sessionError) throw sessionError;
       createdSession = sessionRow;
@@ -670,7 +750,8 @@ export default function App() {
         lessonTitle: topic.title,
         method: "teoria",
         startedAt: new Date(sessionRow.started_at).getTime(),
-        plannedMinutes,
+        plannedMinutes: Number(sessionRow.planned_minutes || plannedMinutes),
+        goalReachedAt: sessionRow.goal_reached_at || null,
       });
       setNotice("Estudo iniciado. O cronômetro está vinculado somente a este tópico.");
     } catch (error) {
@@ -873,8 +954,10 @@ export default function App() {
           lesson_title: lesson.title,
           status: "em_andamento",
           started_at: startedAtIso,
+          planned_minutes: plannedMinutes,
+          goal_reached_at: null,
         })
-        .select("id, started_at")
+        .select("id, started_at, planned_minutes, goal_reached_at")
         .single();
       if (sessionError) throw sessionError;
 
@@ -902,6 +985,8 @@ export default function App() {
         lessonTitle: lesson.title,
         method: "redacao",
         startedAt: new Date(sessionRow.started_at).getTime(),
+        plannedMinutes: Number(sessionRow.planned_minutes || plannedMinutes),
+        goalReachedAt: sessionRow.goal_reached_at || null,
       });
       setEssayLearningNotice(existing?.status === "concluida" || existing?.completed
         ? "Revisão iniciada. O tempo será registrado separadamente nesta aula."
@@ -1132,6 +1217,25 @@ export default function App() {
       setEssayNotice(err.message || "Não foi possível corrigir esta redação.");
     } finally {
       setEssayBusy(false);
+    }
+  }
+
+  async function enableGoalNotifications() {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setGoalNotificationPermission("unsupported");
+      setNotice("Este navegador não oferece notificações. O aviso dentro da plataforma continuará funcionando.");
+      return;
+    }
+    try {
+      const permission = await window.Notification.requestPermission();
+      setGoalNotificationPermission(permission);
+      setNotice(permission === "granted"
+        ? "Notificações ativadas. Você receberá um aviso do navegador ao atingir a meta do bloco."
+        : permission === "denied"
+          ? "As notificações foram bloqueadas pelo navegador. O aviso dentro da plataforma continuará funcionando."
+          : "A permissão de notificações não foi concedida. O aviso dentro da plataforma continuará funcionando.");
+    } catch (error) {
+      setNotice(error.message || "Não foi possível ativar as notificações.");
     }
   }
 
@@ -1492,7 +1596,13 @@ export default function App() {
         {activeSession && (
           <div className="active-session-strip">
             <div><span className="session-live-dot" /><strong>Sessão em andamento</strong><small>{activeSession.lessonTitle || activeSession.topicTitle}</small></div>
-            <b>{formatElapsed(elapsedSeconds)}</b>
+            {(() => {
+              const timer = getStudyPlanTimer(activeSession, elapsedSeconds);
+              return <div className={timer.reached ? "active-session-timer reached" : "active-session-timer"}>
+                <b>{timer.value}</b>
+                <small>{timer.reached ? "excedido" : "restante"} · meta {timer.plannedMinutes} min</small>
+              </div>;
+            })()}
             <button className="text-button" onClick={() => {
               if (activeSession.kind === "topico") {
                 setView("study");
@@ -1571,13 +1681,30 @@ export default function App() {
               </div>
               <div className="panel plan-panel">
                 <div className="panel-heading"><div><span className="eyebrow">PLANO FLEXÍVEL</span><h2>Escolha o tamanho do bloco</h2></div></div>
-                <p className="muted small-copy">Ele trabalha das 07:30 às 17:30. Escolha uma duração e depois abra um tópico para iniciar uma sessão cronometrada. O tempo só será salvo ao finalizar.</p>
+                <p className="muted small-copy">Escolha a meta da próxima sessão. Ao iniciar uma aula, o cronômetro fará a contagem regressiva e avisará quando a meta for atingida, sem encerrar a aula automaticamente.</p>
                 <div className="study-options">
-                  <button className={plannedMinutes === 15 ? "selected" : ""} onClick={() => { setPlannedMinutes(15); setView("study"); }}><strong>15 min</strong><span>Dia corrido</span></button>
-                  <button className={plannedMinutes === 40 ? "selected" : ""} onClick={() => { setPlannedMinutes(40); setView("study"); }}><strong>40 min</strong><span>Rotina normal</span></button>
-                  <button className={plannedMinutes === 90 ? "selected" : ""} onClick={() => { setPlannedMinutes(90); setView("study"); }}><strong>90 min</strong><span>Bloco de fim de semana</span></button>
+                  <button className={plannedMinutes === 15 ? "selected" : ""} aria-pressed={plannedMinutes === 15} onClick={() => { setPlannedMinutes(15); setView("study"); }}><strong>15 min</strong><span>Dia corrido</span></button>
+                  <button className={plannedMinutes === 40 ? "selected" : ""} aria-pressed={plannedMinutes === 40} onClick={() => { setPlannedMinutes(40); setView("study"); }}><strong>40 min</strong><span>Rotina normal</span></button>
+                  <button className={plannedMinutes === 90 ? "selected" : ""} aria-pressed={plannedMinutes === 90} onClick={() => { setPlannedMinutes(90); setView("study"); }}><strong>90 min</strong><span>Bloco de fim de semana</span></button>
                 </div>
-                <div className="plan-tip"><span>✦</span><p><strong>Constância vale mais que maratonas.</strong><br />Uma sessão curta com atenção e exercícios é melhor do que tentar compensar vários dias de uma vez.</p></div>
+                <div className="plan-current-target">
+                  <div><span className="eyebrow">META SELECIONADA</span><strong>{plannedMinutes} minutos</strong><small>Equivale a {formatElapsed(plannedMinutes * 60)} de estudo.</small></div>
+                  {goalNotificationPermission === "granted" ? (
+                    <span className="plan-notification-state enabled">✓ Aviso do navegador ativado</span>
+                  ) : goalNotificationPermission === "unsupported" ? (
+                    <span className="plan-notification-state">Aviso dentro da plataforma</span>
+                  ) : (
+                    <button className="text-button plan-notification-button" type="button" onClick={enableGoalNotifications}>
+                      Ativar aviso no navegador
+                    </button>
+                  )}
+                </div>
+                {activeSession && (
+                  <div className="plan-active-note">
+                    Esta sessão está usando a meta de {activeSession.plannedMinutes} minutos. Alterar a seleção acima afeta somente a próxima sessão.
+                  </div>
+                )}
+                <div className="plan-tip"><span>✦</span><p><strong>Meta flexível, não limite obrigatório.</strong><br />Quando o tempo terminar, o sistema avisa e continua contando o excedente até você salvar ou cancelar a sessão.</p></div>
                 <button className="button button-primary button-wide" onClick={startDiagnostic}>Começar pelo diagnóstico</button>
                 <button className="button button-secondary button-wide" onClick={() => setView("simulations")}>Ver simulados completos →</button>
               </div>
@@ -1609,7 +1736,7 @@ export default function App() {
             ) : (
               <>
                 <div className="page-heading"><span className="eyebrow">ANEXO III · EDITAL 001/2026</span><h1>Sala de estudos</h1><p className="muted">Aulas organizadas pelo edital, com explicações desde o básico, exemplos e atividades de fixação.</p></div>
-                <div className="study-weight-note"><strong>Bloco selecionado: {plannedMinutes} minutos</strong><span>Abra uma aula para visualizar. O cronômetro só começa após confirmação de início.</span></div>
+                <div className="study-weight-note"><strong>Meta da próxima sessão: {plannedMinutes} minutos</strong><span>Abra uma aula e confirme o início. O cronômetro avisará ao atingir a meta, sem encerrar a sessão.</span></div>
                 <div className="study-subject-grid">
                   {subjectRows.map((row) => {
                     const subject = row.subjects || {};
@@ -1815,8 +1942,8 @@ export default function App() {
                   {activeEssaySession && (
                     <div className="essay-active-lesson">
                       <div className="essay-active-timer">
-                        <div><span className="session-live-dot" /><span className="eyebrow">CRONÔMETRO DESTA AULA</span></div>
-                        <strong>{formatElapsed(elapsedSeconds)}</strong>
+                        <div><span className="session-live-dot" /><span className="eyebrow">META DE {activeSession.plannedMinutes} MIN · {getStudyPlanTimer(activeSession, elapsedSeconds).label.toUpperCase()}</span></div>
+                        <strong className={getStudyPlanTimer(activeSession, elapsedSeconds).reached ? "goal-reached-text" : ""}>{getStudyPlanTimer(activeSession, elapsedSeconds).value}</strong>
                       </div>
 
                       <div className="essay-course-objective">
