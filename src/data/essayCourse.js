@@ -6,7 +6,7 @@ export const ESSAY_COURSE = [
     shortTitle: "Fundamentos",
     duration: "20 min",
     objective: "Entender o que a proposta pede e aprender a defender uma ideia com razões organizadas.",
-    introduction: "Uma redação dissertativo-argumentativa não é uma história nem uma lista de opiniões. É um texto em que você apresenta um tema, assume um ponto de vista e explica por que esse ponto de vista faz sentido.",
+    introduction: "No edital, a redação é um texto dissertativo-argumentativo sobre questões da atualidade. Isso significa que você deve compreender uma proposta contemporânea, assumir um ponto de vista e explicar por que ele faz sentido, sem transformar o texto em relato pessoal ou lista de opiniões.",
     sections: [
       {
         heading: "Dissertar é explicar; argumentar é sustentar uma posição",
@@ -304,22 +304,22 @@ export const ESSAY_MODEL_TEXT = {
 
 export const ESSAY_RUBRIC = [
   {
-    title: "Adequação ao tema e à proposta",
+    title: "Adequação à proposta",
     weight: "até 25 pontos",
     description: "Verifica se o texto responde ao tema, respeita o comando e utiliza o gênero dissertativo-argumentativo."
   },
   {
-    title: "Conteúdo",
+    title: "Conteúdo do texto",
     weight: "até 25 pontos",
     description: "Observa o desenvolvimento, a consistência dos argumentos e a pertinência das informações e exemplos."
   },
   {
-    title: "Coerência",
+    title: "Coerência textual",
     weight: "até 25 pontos",
     description: "Avalia a organização das ideias, a progressão do raciocínio e a articulação entre introdução, desenvolvimento e conclusão."
   },
   {
-    title: "Linguagem",
+    title: "Linguagem (coesão e norma gramatical)",
     weight: "até 25 pontos",
     description: "Considera a escrita formal, a coesão, a clareza, o vocabulário, a concordância, a regência, a pontuação e a ortografia."
   }
