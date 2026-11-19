@@ -1334,3 +1334,32 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   .flashcard-rating > span { grid-column: 1 / -1; }
   .flash-rating { text-align: center; }
 }
+
+
+/* Sidebar responsiva: mantém todo o menu acessível em janelas baixas. */
+@media (min-width: 721px) {
+  .sidebar {
+    min-height: 0;
+    max-height: 100vh;
+    max-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+    padding-top: clamp(14px, 2.5vh, 30px);
+    padding-bottom: clamp(12px, 2vh, 18px);
+  }
+  .sidebar > * { flex-shrink: 0; }
+  .brand-dark { margin-bottom: clamp(12px, 3vh, 55px); }
+  .sidebar-label { margin-bottom: clamp(7px, 1.5vh, 13px); }
+  .side-nav { gap: clamp(3px, .8vh, 8px); }
+  .nav-link { padding-top: clamp(7px, 1.4vh, 13px); padding-bottom: clamp(7px, 1.4vh, 13px); }
+  .sidebar-spacer { flex: 1 0 12px; min-height: 12px; }
+  .sidebar-exam-card {
+    padding: 12px 13px;
+    margin-top: clamp(8px, 1.5vh, 25px);
+    margin-bottom: clamp(8px, 1.3vh, 17px);
+  }
+  .sidebar-user { padding-top: clamp(10px, 1.6vh, 17px); }
+}
