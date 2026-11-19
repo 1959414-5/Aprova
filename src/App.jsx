@@ -1884,6 +1884,7 @@ export default function App() {
               <>
                 <button className="back-button lesson-back-button" onClick={() => setSelectedTopic(null)}>← Voltar à lista de aulas</button>
                 <TopicLessonPanel
+                  key={selectedTopic.id}
                   topic={selectedTopic}
                   lesson={selectedLesson}
                   progress={topicProgressById.get(selectedTopic.id)}
