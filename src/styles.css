@@ -1363,3 +1363,59 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   }
   .sidebar-user { padding-top: clamp(10px, 1.6vh, 17px); }
 }
+
+
+/* Atalho do Professor IA na barra superior, ao lado do tema e do perfil. */
+.topbar-tutor-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font: 700 10px "DM Sans", sans-serif;
+  white-space: nowrap;
+  box-shadow: var(--shadow-out-sm);
+  transition: .18s;
+}
+.topbar-tutor-button:hover,
+.topbar-tutor-button.active {
+  color: var(--mint-deep);
+  border-color: var(--mint-strong);
+  background: var(--success-bg);
+  box-shadow: var(--shadow-mint);
+}
+.topbar-tutor-icon {
+  color: var(--mint-deep);
+  font-size: 17px;
+  line-height: 1;
+}
+.topbar-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.topbar-user-name {
+  max-width: 150px;
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 11px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+  .topbar-tutor-label { display: none; }
+  .topbar-tutor-button { width: 36px; padding: 7px; }
+  .topbar-user-name { max-width: 105px; }
+}
+@media (max-width: 720px) {
+  .topbar-right { gap: 8px; }
+  .topbar-tutor-button { width: 34px; min-height: 34px; }
+  .topbar-user-name { display: none; }
+}
