@@ -1419,3 +1419,375 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
   .topbar-tutor-button { width: 34px; min-height: 34px; }
   .topbar-user-name { display: none; }
 }
+
+
+/* Curso guiado de redação: aulas, exercícios, análise e laboratório. */
+.essay-course-progress {
+  display: grid;
+  grid-template-columns: minmax(220px, .85fr) minmax(180px, 1.15fr);
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+  padding: 17px 20px;
+}
+.essay-course-progress-copy { display: grid; gap: 4px; }
+.essay-course-progress-copy strong { font: 800 14px "Manrope", sans-serif; }
+.essay-course-progress-copy small { color: var(--muted); font-size: 10px; line-height: 1.6; }
+.essay-course-progress-meter {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-in-sm);
+}
+.essay-course-progress-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mint-strong);
+  transition: width .25s ease;
+}
+.essay-learning-tabs {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.essay-learning-tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--text-soft);
+  text-align: left;
+  box-shadow: var(--shadow-out-sm);
+  transition: .18s;
+}
+.essay-learning-tab:hover,
+.essay-learning-tab.active {
+  color: var(--mint-deep);
+  border-color: var(--mint-strong);
+  box-shadow: var(--shadow-mint);
+}
+.essay-learning-tab.active { background: var(--success-bg); }
+.essay-learning-tab-number {
+  color: var(--mint-deep);
+  font: 800 11px "Manrope",sans-serif;
+}
+.essay-learning-tab strong { font-size: 11px; }
+.essay-course-layout {
+  display: grid;
+  grid-template-columns: minmax(220px,.72fr) minmax(0,1.75fr);
+  align-items: start;
+  gap: 15px;
+}
+.essay-course-index { min-width: 0; padding: 15px; }
+.essay-course-index .panel-heading { margin-bottom: 10px; }
+.essay-course-index-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 8px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  transition: .18s;
+}
+.essay-course-index-item:hover,
+.essay-course-index-item.active {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-in-sm);
+}
+.essay-course-index-item.active { color: var(--mint-deep); }
+.essay-course-index-number {
+  width: 29px;
+  height: 29px;
+  flex: 0 0 29px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font: 800 10px "Manrope",sans-serif;
+}
+.essay-course-index-number.done {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+.essay-course-index-copy { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.essay-course-index-copy strong { font-size: 10px; line-height: 1.4; }
+.essay-course-index-copy small { color: var(--muted); font-size: 9px; }
+.essay-course-index-arrow { color: var(--muted); font-size: 19px; }
+.essay-course-lesson { min-width: 0; padding: clamp(17px,2.5vw,28px); }
+.essay-course-lesson-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.essay-completed-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 9px;
+  border-radius: 99px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  font-size: 9px;
+  font-weight: 800;
+}
+.essay-course-lesson > h2 {
+  margin: 7px 0 10px;
+  font-size: clamp(19px,2.4vw,25px);
+  line-height: 1.35;
+}
+.essay-course-intro {
+  margin: 0 0 16px;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.85;
+}
+.essay-course-objective {
+  display: grid;
+  gap: 5px;
+  padding: 13px 15px;
+  border: 1px solid rgba(83,164,133,.25);
+  border-radius: 12px;
+  background: var(--success-bg);
+  color: var(--success-text);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.essay-course-objective strong { font-size: 10px; }
+.essay-course-sections { display: grid; margin: 18px 0; }
+.essay-course-section {
+  display: grid;
+  grid-template-columns: 30px minmax(0,1fr);
+  gap: 11px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--line);
+}
+.essay-course-section-number {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--mint-deep);
+  font: 800 10px "Manrope",sans-serif;
+}
+.essay-course-section h3 {
+  margin: 1px 0 7px;
+  font: 800 13px/1.45 "Manrope",sans-serif;
+}
+.essay-course-section p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.85;
+}
+.essay-course-example {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.essay-course-example > h3 { margin: 0; font: 800 13px "Manrope",sans-serif; }
+.essay-example-version {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface);
+}
+.essay-example-version strong { display: block; margin-bottom: 5px; font-size: 9px; letter-spacing: .1em; }
+.essay-example-version p { margin: 0; font-size: 11px; line-height: 1.75; color: var(--text-soft); }
+.essay-example-version.weak strong { color: var(--error-text); }
+.essay-example-version.strong strong { color: var(--success-text); }
+.essay-course-example ul {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.75;
+}
+.essay-exercise-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+}
+.essay-exercise-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.essay-exercise-status {
+  padding: 4px 8px;
+  border-radius: 99px;
+  font-size: 9px;
+  font-weight: 800;
+}
+.essay-exercise-status.correct { background: var(--success-bg); color: var(--success-text); }
+.essay-exercise-status.incorrect { background: var(--warning-bg); color: var(--warning-text); }
+.essay-exercise-card h3 {
+  margin: 0 0 12px;
+  font: 800 12px/1.55 "Manrope",sans-serif;
+}
+.essay-exercise-options { display: grid; gap: 7px; }
+.essay-exercise-option {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 25px minmax(0,1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  text-align: left;
+  font-size: 10px;
+  line-height: 1.65;
+  transition: .16s;
+}
+.essay-exercise-option > span:first-child {
+  width: 23px;
+  height: 23px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--mint-deep);
+  font-weight: 800;
+}
+.essay-exercise-option:hover:not(:disabled) { border-color: var(--mint-strong); }
+.essay-exercise-option.selected { border-color: var(--mint-strong); }
+.essay-exercise-option.correct { border-color: var(--mint-strong); background: var(--success-bg); color: var(--success-text); }
+.essay-exercise-option.incorrect { border-color: var(--error-bg); background: var(--error-bg); color: var(--error-text); }
+.essay-exercise-feedback {
+  margin-top: 10px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.essay-exercise-feedback.correct { background: var(--success-bg); color: var(--success-text); }
+.essay-exercise-feedback.incorrect { background: var(--warning-bg); color: var(--warning-text); }
+.essay-exercise-feedback p { margin: 4px 0 0; }
+.essay-course-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 16px;
+  margin-top: 17px;
+  border-top: 1px solid var(--line);
+}
+.essay-course-footer .button { font-size: 10px; padding: 10px 14px; }
+.essay-course-next {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+.essay-practice-view, .essay-analysis-view { display: grid; gap: 14px; }
+.essay-subheading { margin: 3px 0 0; }
+.essay-subheading h2 { margin: 7px 0; font-size: 20px; }
+.essay-subheading p { font-size: 11px; }
+.essay-practice-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px;
+}
+.essay-model-panel { padding: clamp(17px,2.5vw,26px); }
+.essay-model-panel > h2 { margin: 7px 0 14px; font-size: 20px; line-height: 1.4; }
+.essay-model-notice { margin-bottom: 15px; font-size: 10px; line-height: 1.65; }
+.essay-model-paragraph {
+  display: grid;
+  gap: 8px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+.essay-model-paragraph-label { display: flex; align-items: center; gap: 9px; }
+.essay-model-paragraph-label > span {
+  color: var(--mint-deep);
+  font: 800 11px "Manrope",sans-serif;
+}
+.essay-model-paragraph-label strong { font-size: 11px; }
+.essay-model-paragraph > p {
+  margin: 0;
+  color: var(--text);
+  font-size: 11px;
+  line-height: 1.9;
+}
+.essay-model-analysis {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.essay-model-analysis strong { color: var(--mint-deep); font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+.essay-rubric-heading { margin: 8px 0 0; }
+.essay-rubric-heading h2 { margin: 6px 0; font-size: 19px; }
+.essay-rubric-grid {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+}
+.essay-rubric-card {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface);
+  box-shadow: var(--shadow-out-sm);
+}
+.essay-rubric-card > span { color: var(--mint-deep); font: 800 11px "Manrope",sans-serif; }
+.essay-rubric-card h3 { margin: 0; font: 800 11px/1.5 "Manrope",sans-serif; }
+.essay-rubric-card > strong { color: var(--mint-deep); font-size: 9px; }
+.essay-rubric-card p { margin: 0; color: var(--text-soft); font-size: 10px; line-height: 1.7; }
+
+@media (max-width: 1000px) {
+  .essay-course-layout { grid-template-columns: 1fr; }
+  .essay-course-index { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
+  .essay-course-index .panel-heading { grid-column: 1 / -1; }
+  .essay-rubric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 720px) {
+  .essay-course-progress { grid-template-columns: 1fr; gap: 12px; padding: 14px; }
+  .essay-learning-tabs { gap: 6px; }
+  .essay-learning-tab { flex-direction: column; align-items: flex-start; gap: 3px; padding: 9px; }
+  .essay-learning-tab-number { font-size: 9px; }
+  .essay-learning-tab strong { font-size: 10px; }
+  .essay-course-index { grid-template-columns: 1fr; }
+  .essay-course-lesson { padding: 16px; }
+  .essay-course-footer { align-items: stretch; flex-direction: column; }
+  .essay-course-footer .button { width: 100%; }
+  .essay-practice-grid, .essay-rubric-grid { grid-template-columns: 1fr; }
+  .essay-course-next { align-items: flex-start; flex-direction: column; }
+}
