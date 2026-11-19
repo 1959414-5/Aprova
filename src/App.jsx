@@ -902,7 +902,7 @@ export default function App() {
         <div className="brand-lockup brand-dark"><span className="brand-mark">A</span><span>APROVA</span></div>
         <div className="sidebar-label">ÁREA DE ESTUDOS</div>
         <nav className="side-nav">
-          {NAV_ITEMS.map((item) => (
+          {NAV_ITEMS.filter((item) => item.id !== "tutor").map((item) => (
             <button key={item.id} className={view === item.id || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? startDiagnostic() : setView(item.id)}>
               <span className="nav-icon">{item.icon}</span>{item.label}
             </button>
@@ -931,7 +931,19 @@ export default function App() {
             <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
               <span>{theme === "dark" ? "☼" : "◐"}</span><small>{theme === "dark" ? "Claro" : "Escuro"}</small>
             </button>
-            <button className="avatar avatar-small" title={user.email}>{(user.email || "A").slice(0, 1).toUpperCase()}</button>
+            <button
+              className={view === "tutor" ? "topbar-tutor-button active" : "topbar-tutor-button"}
+              type="button"
+              onClick={() => setView("tutor")}
+              aria-label="Abrir Professor IA"
+              title="Professor IA"
+            >
+              <span className="topbar-tutor-icon">✦</span><span className="topbar-tutor-label">Professor IA</span>
+            </button>
+            <div className="topbar-user">
+              <span className="topbar-user-name" title={user.email}>{user.email?.split("@")[0] || "Candidato"}</span>
+              <span className="avatar avatar-small" aria-hidden="true">{(user.email || "A").slice(0, 1).toUpperCase()}</span>
+            </div>
           </div>
         </header>
         {notice && <div className="global-notice"><span>{notice}</span><button onClick={() => setNotice("")}>×</button></div>}
