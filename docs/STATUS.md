@@ -6,11 +6,12 @@
 - Painel, 5 disciplinas e 45 tópicos do Anexo III.
 - 45 aulas autorais com explicações, exemplos, resumos, erros comuns e prática.
 - Progresso de tópico separado do tempo de estudo; sessões cronometradas só são salvas ao finalizar.
-- Diagnóstico curto com 22 questões proporcionais.
+- Diagnóstico inicial com 22 questões proporcionais; sequência persistida no registro da tentativa e retomada autenticada após atualizar/reabrir o navegador.
 - Simulado de 70 questões, distribuição oficial e nota ponderada server-side.
 - Gabarito oculto durante simulado.
 - Professor IA contextualizado pela aula; Edge Function autenticada `study-tutor`.
 - Curso de Redação: seis aulas autorais em quatro etapas (Aprender, Praticar, Analisar e Escrever), com exercícios objetivos e explicação, texto-modelo comentado e rubrica do edital.
+- `assessment_runs`: tentativas diagnósticas com uma sessão ativa por usuário/concurso, sequência de questões em `metadata.question_ids` e retomada autenticada por `diagnostic-session`.
 - `essay_learning_progress`: progresso individual por aula (`nao_iniciada`, `em_andamento`, `concluida`), respostas de exercícios e datas de início/conclusão, com RLS.
 - Abertura/visualização não altera progresso; iniciar exige confirmação; conclusão também exige confirmação. Cada sessão é vinculada ao tópico ou à aula de redação e registra início, término e duração em segundos. Sessões salvas não concluem automaticamente o conteúdo; é possível retomar a aula.
 - Laboratório de Redação preservado: temas, salvamento de rascunho, contador de 20–30 linhas e correção formativa por quatro critérios, via `essay-feedback`.
@@ -25,12 +26,12 @@
 - 45 flashcards publicados, um por tópico.
 - `ai_tutor_usage` separa consumo do tutor e correção de redação.
 - `essay_submissions` possui proteção para usuário editar apenas rascunhos; pontuações são atualizadas pelo servidor.
-- Conta do candidato mantém perfil e está sem sessões, respostas, simulados e progresso de teste.
+- Tentativas diagnósticas vazias duplicadas de teste foram encerradas como abandonadas, sem excluir respostas. Uma única tentativa vazia foi preservada para retomada e recebeu a sequência salva de 22 questões.
 
 ## Integração de IA
 - `OPENAI_API_KEY` deve ficar em Supabase → Edge Functions → Secrets.
 - Modelo padrão: `gpt-6.2-sol`.
-- Funções ativas: `study-tutor`, `essay-feedback`, `answer-question`, `finish-assessment`.
+- Funções ativas: `study-tutor`, `essay-feedback`, `answer-question`, `finish-assessment`, `diagnostic-session` (todas autenticadas com JWT).
 - Tutor e correção de redação têm limites de 35 solicitações/dia/usuário cada.
 - Cobrança da OpenAI API é separada da assinatura ChatGPT. Conta pré-paga nova pode exigir compra mínima de US$ 5; confira/desative recarga automática.
 
@@ -38,7 +39,7 @@
 1. Build/deploy e teste visual das telas Redação e Revisões.
 2. Testar Professor IA e correção de redação com saldo e sessão autenticada.
 3. Revisar humanamente as 70 questões autorais e seus gabaritos.
-4. Testar o simulado completo ponta a ponta com conta de teste.
+4. Testar diagnóstico e simulado ponta a ponta com a conta autenticada do candidato (o teste de navegador com a sessão real ainda precisa ser feito).
 5. Importar e conferir separadamente as questões históricas oficiais de 2019.
 6. Habilitar Leaked Password Protection no Supabase Auth.
 
