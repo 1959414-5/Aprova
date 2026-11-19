@@ -22,7 +22,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       return Response.json({ error: "Questão ou alternativa inválida." }, { status: 400, headers: corsHeaders });
     }
 
-    const userId = ctx.userClaims?.sub;
+    const userId = ctx.userClaims?.id;
     if (!userId) return Response.json({ error: "Sessão não identificada." }, { status: 401, headers: corsHeaders });
 
     let runType: string | null = null;
