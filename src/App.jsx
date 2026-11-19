@@ -1589,7 +1589,7 @@ export default function App() {
           <div className="topbar-right">
             <span className="top-date">{formatDate(new Date())}</span>
             <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
-              <span>{theme === "dark" ? "☼" : "◐"}</span><small>{theme === "dark" ? "Claro" : "Escuro"}</small>
+              <span>{theme === "dark" ? "☼" : "◐"}</span>
             </button>
             <button
               className={view === "tutor" ? "topbar-tutor-button active" : "topbar-tutor-button"}
