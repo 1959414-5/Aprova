@@ -128,10 +128,21 @@ function AuthScreen({ theme, setTheme }) {
   );
 }
 
-function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onCancel, onAskTutor, onClose }) {
+function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onMarkComplete, onCancel, onAskTutor, onClose }) {
+  const [completionMode, setCompletionMode] = useState(null);
   const content = lesson?.content || {};
   const hasActiveSession = activeSession?.topicId === topic.id;
   const anotherSessionActive = Boolean(activeSession) && !hasActiveSession;
+  const completed = progress?.status === "concluido";
+  const inProgress = progress?.status === "em_andamento";
+
+  function confirmCompletion() {
+    const mode = completionMode;
+    setCompletionMode(null);
+    if (mode === "session") onFinish(true);
+    if (mode === "topic") onMarkComplete();
+  }
+
   return (
     <section className="lesson-panel" id="topic-lesson">
       <div className="lesson-panel-head">
@@ -140,7 +151,11 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
           <h2>{topic.title}</h2>
           <p className="muted">{content.introduction || "O conteúdo desta aula está sendo preparado."}</p>
         </div>
-        <button className="icon-button lesson-close" onClick={onClose} title="Fechar aula">×</button>
+        <button className="icon-button lesson-close" onClick={onClose} title="Fechar aula" aria-label="Fechar aula">×</button>
+      </div>
+      <div className="lesson-open-safety-note">
+        <strong>Visualização da aula</strong>
+        <span>Abrir ou fechar esta tela não altera seu progresso. O registro só muda quando você escolhe iniciar ou concluir.</span>
       </div>
       {!lesson && <div className="notice notice-success">Esta aula ainda está em preparação. O tópico do edital já está cadastrado.</div>}
       {lesson && <>
@@ -154,22 +169,52 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
         {content.practice && <div className="lesson-practice"><span className="eyebrow">ATIVIDADE DE FIXAÇÃO</span><h3>{content.practice}</h3><p className="muted">Resolva no caderno ou explique a resposta com suas palavras. Depois, pratique questões do banco.</p></div>}
       </>}
       <div className="lesson-session-footer">
-        <div className="lesson-progress-copy"><span className="eyebrow">SEU PROGRESSO</span><strong>{progress?.status === "concluido" ? "Tópico concluído" : progress?.status === "em_andamento" ? "Em andamento" : "Ainda não iniciado"}</strong><small>Bloco planejado: {plannedMinutes} min</small></div>
+        <div className="lesson-progress-copy">
+          <span className="eyebrow">SEU PROGRESSO</span>
+          <strong>{completed ? "Tópico concluído" : inProgress ? "Em andamento" : "Ainda não iniciado"}</strong>
+          <small>Bloco planejado: {plannedMinutes} min</small>
+        </div>
         <div className="lesson-tutor-action"><button className="button button-secondary" onClick={onAskTutor}>Tirar dúvida com o Professor IA</button></div>
-        {hasActiveSession ? <div className="lesson-timer-controls">
-          <div className="lesson-timer"><span className="session-live-dot" />{formatElapsed(elapsedSeconds)}</div>
-          <button className="button button-secondary" onClick={() => onFinish(false)} disabled={busy}>Salvar sessão</button>
-          <button className="button button-primary" onClick={() => onFinish(true)} disabled={busy}>Salvar e concluir tópico</button>
-          <button className="text-button" onClick={onCancel}>Cancelar sem salvar</button>
-        </div> : <div className="lesson-timer-controls">
-          <button className="button button-primary" onClick={onStart} disabled={busy || anotherSessionActive || !lesson}>{anotherSessionActive ? "Finalize a sessão atual" : "Iniciar sessão cronometrada"}</button>
-          <small className="muted">O cronômetro começa ao clicar. O tempo só entra no painel quando você salvar a sessão.</small>
-        </div>}
+        {hasActiveSession ? (
+          <div className="lesson-timer-controls">
+            <div className="lesson-timer"><span className="session-live-dot" />{formatElapsed(elapsedSeconds)}</div>
+            <button className="button button-secondary" onClick={() => onFinish(false)} disabled={busy}>Salvar sessão (sem concluir)</button>
+            <button className="button button-primary" onClick={() => setCompletionMode("session")} disabled={busy}>Finalizar e concluir tópico</button>
+            <button className="text-button" onClick={onCancel}>Cancelar sessão sem salvar</button>
+          </div>
+        ) : (
+          <div className="lesson-timer-controls">
+            <button className="button button-primary" onClick={onStart} disabled={busy || anotherSessionActive || !lesson}>
+              {anotherSessionActive ? "Finalize a sessão atual" : completed ? "Iniciar revisão cronometrada" : inProgress ? "Retomar estudo" : "Iniciar estudo"}
+            </button>
+            {inProgress && !anotherSessionActive && (
+              <button className="button button-secondary" onClick={() => setCompletionMode("topic")} disabled={busy}>Marcar tópico como concluído</button>
+            )}
+            {completed && <span className="lesson-completed-hint">✓ Concluído. Você pode iniciar uma sessão de revisão sem perder o histórico.</span>}
+            <small className="muted">O cronômetro só começa quando você clicar em iniciar. Salvar uma sessão registra o tempo, mas não conclui o tópico.</small>
+          </div>
+        )}
       </div>
+
+      {completionMode && (
+        <div className="lesson-confirm-backdrop" role="presentation">
+          <div className="lesson-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="topic-confirm-title">
+            <span className="eyebrow">CONFIRMAÇÃO NECESSÁRIA</span>
+            <h3 id="topic-confirm-title">Concluir este tópico?</h3>
+            <p>{completionMode === "session"
+              ? "Esta ação vai salvar o tempo da sessão atual e marcar o tópico como concluído."
+              : "Esta ação vai marcar o tópico como concluído. Nenhum tempo adicional será registrado."}</p>
+            <p className="lesson-confirm-warning">Só confirme se terminou o conteúdo. Você pode continuar apenas visualizando a aula sem concluir.</p>
+            <div className="lesson-confirm-actions">
+              <button className="button button-secondary" onClick={() => setCompletionMode(null)}>Não, voltar</button>
+              <button className="button button-primary" onClick={confirmCompletion} disabled={busy}>Sim, concluir tópico</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
-
 
 function EssayExerciseCard({ lesson, progress, onAnswer, disabled = false }) {
   const chosen = progress?.exercise_answers?.selected_option;
@@ -275,6 +320,7 @@ export default function App() {
   const [activeEssayLessonId, setActiveEssayLessonId] = useState("fundamentos");
   const [essayLearningBusy, setEssayLearningBusy] = useState(false);
   const [essayLearningNotice, setEssayLearningNotice] = useState("");
+  const [essayLessonCompletionPending, setEssayLessonCompletionPending] = useState(null);
   const [flashcards, setFlashcards] = useState([]);
   const [flashcardReviews, setFlashcardReviews] = useState([]);
   const [flashcardRevealed, setFlashcardRevealed] = useState(false);
@@ -392,7 +438,7 @@ export default function App() {
       if (essayError) throw essayError;
 
       const { data: essayLearningData, error: essayLearningError } = await supabase.from("essay_learning_progress")
-        .select("lesson_id, exercise_answers, completed, last_activity_at, completed_at")
+        .select("lesson_id, exercise_answers, completed, status, started_at, last_activity_at, completed_at")
         .eq("user_id", currentUser.id);
       if (essayLearningError) throw essayLearningError;
 
@@ -449,7 +495,7 @@ export default function App() {
   const currentEssayPrompt = ESSAY_PROMPTS.find((item) => item.id === essayPromptId) || ESSAY_PROMPTS[0];
   const essayLessonProgressById = useMemo(() => new Map(essayLearningProgress.map((item) => [item.lesson_id, item])), [essayLearningProgress]);
   const activeEssayLesson = ESSAY_COURSE.find((item) => item.id === activeEssayLessonId) || ESSAY_COURSE[0];
-  const completedEssayLessons = essayLearningProgress.filter((item) => item.completed).length;
+  const completedEssayLessons = essayLearningProgress.filter((item) => item.status === "concluida" || item.completed).length;
   const essayLearningPercent = Math.round((completedEssayLessons / ESSAY_COURSE.length) * 100);
   const essayLineCount = essayText.trim() ? essayText.trim().split(/\r?\n/).length : 0;
   const latestFlashcardReviewById = useMemo(() => {
@@ -483,6 +529,34 @@ export default function App() {
 
   async function startTopicSession(topic) {
     if (!user || activeSession) return;
+    const now = new Date().toISOString();
+    const existing = topicProgressById.get(topic.id);
+    const nextStatus = existing?.status === "concluido" ? "concluido" : "em_andamento";
+    const { error } = await supabase.from("topic_progress").upsert({
+      user_id: user.id,
+      topic_id: topic.id,
+      status: nextStatus,
+      started_at: existing?.started_at || now,
+      completed_at: existing?.completed_at || null,
+      last_studied_at: existing?.last_studied_at || null,
+      updated_at: now,
+    }, { onConflict: "user_id,topic_id" });
+    if (error) {
+      setNotice(error.message || "Não foi possível iniciar este tópico.");
+      return;
+    }
+    setTopicProgressRows((previous) => [
+      ...previous.filter((item) => item.topic_id !== topic.id),
+      {
+        ...existing,
+        topic_id: topic.id,
+        status: nextStatus,
+        started_at: existing?.started_at || now,
+        completed_at: existing?.completed_at || null,
+        last_studied_at: existing?.last_studied_at || null,
+        updated_at: now,
+      },
+    ]);
     setActiveSession({
       topicId: topic.id,
       topicTitle: topic.title,
@@ -490,7 +564,7 @@ export default function App() {
       startedAt: Date.now(),
       plannedMinutes,
     });
-    setNotice("Sessão iniciada. O tempo só será registrado quando você finalizar.");
+    setNotice("Estudo iniciado. O tópico ficou marcado como em andamento; o tempo só será registrado quando você salvar a sessão.");
   }
 
   async function finishTopicSession(markCompleted = false) {
@@ -597,20 +671,22 @@ export default function App() {
 
 
   async function saveEssayLearningProgress(lessonId, patch) {
-    if (!user || essayLearningBusy) return;
+    if (!user || essayLearningBusy) return false;
     const existing = essayLessonProgressById.get(lessonId);
     const now = new Date().toISOString();
+    const nextStatus = patch.status
+      || (patch.completed === true ? "concluida" : patch.completed === false ? "nao_iniciada" : existing?.status || (existing?.completed ? "concluida" : "nao_iniciada"));
     const nextRow = {
       user_id: user.id,
       lesson_id: lessonId,
       exercise_answers: patch.exercise_answers ?? existing?.exercise_answers ?? {},
-      completed: patch.completed ?? existing?.completed ?? false,
+      completed: nextStatus === "concluida",
+      status: nextStatus,
+      started_at: patch.started_at ?? existing?.started_at ?? (nextStatus !== "nao_iniciada" ? now : null),
       last_activity_at: now,
-      completed_at: patch.completed === true
-        ? now
-        : patch.completed === false
-          ? null
-          : existing?.completed_at ?? null,
+      completed_at: nextStatus === "concluida"
+        ? (existing?.completed_at || now)
+        : null,
       updated_at: now,
     };
 
@@ -619,23 +695,65 @@ export default function App() {
     try {
       const { data, error } = await supabase.from("essay_learning_progress")
         .upsert(nextRow, { onConflict: "user_id,lesson_id" })
-        .select("lesson_id, exercise_answers, completed, last_activity_at, completed_at")
+        .select("lesson_id, exercise_answers, completed, status, started_at, last_activity_at, completed_at")
         .single();
       if (error) throw error;
       setEssayLearningProgress((previous) => [
         ...previous.filter((item) => item.lesson_id !== lessonId),
         data,
       ]);
-      setEssayLearningNotice(patch.completed === true
+      setEssayLearningNotice(nextStatus === "concluida"
         ? "Aula concluída. Seu progresso foi salvo."
-        : patch.exercise_answers
-          ? "Resposta salva no seu progresso."
-          : "Progresso salvo.");
+        : nextStatus === "em_andamento"
+          ? "Aula iniciada. Seu progresso foi salvo."
+          : patch.exercise_answers
+            ? "Resposta salva no seu progresso."
+            : "Progresso salvo.");
+      return true;
     } catch (error) {
       setEssayLearningNotice(error.message || "Não foi possível salvar seu progresso. Tente novamente.");
+      return false;
     } finally {
       setEssayLearningBusy(false);
     }
+  }
+
+  async function startEssayLesson(lessonId) {
+    const existing = essayLessonProgressById.get(lessonId);
+    if (existing?.status === "concluida" || existing?.completed) return;
+    await saveEssayLearningProgress(lessonId, {
+      status: "em_andamento",
+      started_at: existing?.started_at || new Date().toISOString(),
+    });
+  }
+
+  async function confirmEssayLessonCompletion() {
+    if (!essayLessonCompletionPending) return;
+    const lessonId = essayLessonCompletionPending;
+    setEssayLessonCompletionPending(null);
+    await saveEssayLearningProgress(lessonId, { status: "concluida" });
+  }
+
+  async function markTopicCompleted(topic) {
+    if (!user) return;
+    const existing = topicProgressById.get(topic.id);
+    if (existing?.status !== "em_andamento") return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("topic_progress").upsert({
+      user_id: user.id,
+      topic_id: topic.id,
+      status: "concluido",
+      started_at: existing.started_at || now,
+      completed_at: now,
+      last_studied_at: existing.last_studied_at || null,
+      updated_at: now,
+    }, { onConflict: "user_id,topic_id" });
+    if (error) {
+      setNotice(error.message || "Não foi possível concluir o tópico.");
+      return;
+    }
+    setNotice("Tópico marcado como concluído. Nenhuma sessão adicional foi registrada.");
+    await loadDashboard(user);
   }
 
   function answerEssayExercise(lesson, selectedOption) {
@@ -1153,6 +1271,7 @@ export default function App() {
                 busy={busy}
                 onStart={() => startTopicSession(selectedTopic)}
                 onFinish={(complete) => finishTopicSession(complete)}
+                onMarkComplete={() => markTopicCompleted(selectedTopic)}
                 onCancel={cancelTopicSession}
                 onAskTutor={() => { setTutorTopicId(selectedTopic.id); setView("tutor"); }}
                 onClose={() => setSelectedTopic(null)}
@@ -1262,10 +1381,12 @@ export default function App() {
                   </div>
                   {ESSAY_COURSE.map((lesson) => {
                     const progress = essayLessonProgressById.get(lesson.id);
+                    const status = progress?.status || (progress?.completed ? "concluida" : "nao_iniciada");
+                    const statusLabel = status === "concluida" ? "Concluída" : status === "em_andamento" ? "Em andamento" : "Pendente";
                     return (
-                      <button key={lesson.id} className={activeEssayLessonId === lesson.id ? "essay-course-index-item active" : "essay-course-index-item"} onClick={() => setActiveEssayLessonId(lesson.id)}>
-                        <span className={progress?.completed ? "essay-course-index-number done" : "essay-course-index-number"}>{progress?.completed ? "✓" : String(lesson.number).padStart(2, "0")}</span>
-                        <span className="essay-course-index-copy"><strong>{lesson.shortTitle}</strong><small>{lesson.duration} · {progress?.completed ? "Concluída" : "Pendente"}</small></span>
+                      <button key={lesson.id} className={activeEssayLessonId === lesson.id ? "essay-course-index-item active" : "essay-course-index-item"} onClick={() => { setActiveEssayLessonId(lesson.id); setEssayLessonCompletionPending(null); }}>
+                        <span className={status === "concluida" ? "essay-course-index-number done" : "essay-course-index-number"}>{status === "concluida" ? "✓" : String(lesson.number).padStart(2, "0")}</span>
+                        <span className="essay-course-index-copy"><strong>{lesson.shortTitle}</strong><small>{lesson.duration} · {statusLabel}</small></span>
                         <span className="essay-course-index-arrow">›</span>
                       </button>
                     );
@@ -1310,10 +1431,26 @@ export default function App() {
                   />
 
                   <div className="essay-course-footer">
-                    <span className="muted small-copy">Conclua a leitura e responda ao exercício para fixar o conteúdo.</span>
-                    <button className="button button-primary" onClick={() => saveEssayLearningProgress(activeEssayLesson.id, { completed: true })} disabled={essayLearningBusy || essayLessonProgressById.get(activeEssayLesson.id)?.completed}>
-                      {essayLearningBusy ? "Salvando..." : essayLessonProgressById.get(activeEssayLesson.id)?.completed ? "Aula concluída ✓" : "Marcar aula como concluída"}
-                    </button>
+                    <div className="essay-lesson-state-copy">
+                      <span className="muted small-copy">STATUS DA AULA</span>
+                      <strong>{(essayLessonProgressById.get(activeEssayLesson.id)?.status || (essayLessonProgressById.get(activeEssayLesson.id)?.completed ? "concluida" : "nao_iniciada")) === "concluida" ? "Concluída" : (essayLessonProgressById.get(activeEssayLesson.id)?.status === "em_andamento" ? "Em andamento" : "Não iniciada")}</strong>
+                      <small>Abrir ou trocar de aula não altera este status.</small>
+                    </div>
+                    {(() => {
+                      const progress = essayLessonProgressById.get(activeEssayLesson.id);
+                      const status = progress?.status || (progress?.completed ? "concluida" : "nao_iniciada");
+                      if (status === "nao_iniciada") {
+                        return <button className="button button-primary" onClick={() => startEssayLesson(activeEssayLesson.id)} disabled={essayLearningBusy}>
+                          {essayLearningBusy ? "Salvando..." : "Iniciar aula"}
+                        </button>;
+                      }
+                      if (status === "em_andamento") {
+                        return <button className="button button-primary" onClick={() => setEssayLessonCompletionPending(activeEssayLesson.id)} disabled={essayLearningBusy}>
+                          Marcar aula como concluída
+                        </button>;
+                      }
+                      return <span className="essay-completed-label">✓ Aula concluída</span>;
+                    })()}
                   </div>
                   <div className="essay-course-next">
                     <button className="text-button" onClick={() => setEssayLearningTab("practice")}>Ir para os exercícios →</button>
@@ -1322,6 +1459,21 @@ export default function App() {
                 </article>
               </div>
             )}
+
+              {essayLessonCompletionPending && (
+                <div className="lesson-confirm-backdrop" role="presentation">
+                  <div className="lesson-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="essay-confirm-title">
+                    <span className="eyebrow">CONFIRMAÇÃO NECESSÁRIA</span>
+                    <h3 id="essay-confirm-title">Finalizar esta aula?</h3>
+                    <p>O status será alterado para “Concluída” e o progresso ficará salvo na sua conta.</p>
+                    <p className="lesson-confirm-warning">Se você só queria abrir, ler ou trocar de aula, escolha voltar. Nada será finalizado.</p>
+                    <div className="lesson-confirm-actions">
+                      <button className="button button-secondary" onClick={() => setEssayLessonCompletionPending(null)}>Não, voltar</button>
+                      <button className="button button-primary" onClick={confirmEssayLessonCompletion} disabled={essayLearningBusy}>{essayLearningBusy ? "Salvando..." : "Sim, finalizar aula"}</button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
             {essayLearningTab === "practice" && (
               <div className="essay-practice-view">
