@@ -8,6 +8,8 @@ const NAV_ITEMS = [
   { id: "study", icon: "▤", label: "Sala de estudos" },
   { id: "tutor", icon: "✦", label: "Professor IA" },
   { id: "simulations", icon: "▧", label: "Simulados" },
+  { id: "essay", icon: "✎", label: "Redação" },
+  { id: "reviews", icon: "↻", label: "Revisões" },
   { id: "diagnostic", icon: "✓", label: "Diagnóstico" },
   { id: "performance", icon: "↗", label: "Desempenho" },
 ];
@@ -193,6 +195,15 @@ function getSubjectName(rows, examSubjectId) {
   return row?.subjects?.name || "Conhecimentos específicos";
 }
 
+const ESSAY_PROMPTS = [
+  { id: "transporte-regional", title: "A importância do transporte regional para a integração econômica e social", prompt: "Redija um texto dissertativo-argumentativo sobre a importância do transporte regional para a integração econômica e social, considerando acesso a serviços, desenvolvimento e desafios de infraestrutura." },
+  { id: "tecnologia-servicos", title: "O uso responsável da tecnologia na melhoria dos serviços públicos", prompt: "Redija um texto dissertativo-argumentativo sobre como a tecnologia pode melhorar os serviços públicos, considerando eficiência, segurança da informação e inclusão digital." },
+  { id: "sustentabilidade", title: "Responsabilidade ambiental e gestão adequada de resíduos", prompt: "Redija um texto dissertativo-argumentativo sobre a responsabilidade ambiental nas organizações, considerando redução de desperdícios, gestão de resíduos e participação social." },
+  { id: "etica-transparencia", title: "Ética, transparência e confiança nas instituições", prompt: "Redija um texto dissertativo-argumentativo sobre a relação entre ética, transparência e confiança nas instituições, considerando integridade, prestação de contas e interesse coletivo." },
+  { id: "desinformacao", title: "Desinformação e responsabilidade no uso das informações", prompt: "Redija um texto dissertativo-argumentativo sobre os desafios da desinformação na sociedade, considerando educação midiática, responsabilidade individual e qualidade do debate público." },
+  { id: "seguranca-coletiva", title: "Prevenção de riscos e segurança em espaços de uso coletivo", prompt: "Redija um texto dissertativo-argumentativo sobre a importância da prevenção de riscos e da segurança em espaços de uso coletivo, considerando planejamento, comunicação e responsabilidade." },
+];
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [theme, setTheme] = useState(() => {
@@ -216,6 +227,18 @@ export default function App() {
   const [tutorBusy, setTutorBusy] = useState(false);
   const [tutorRemaining, setTutorRemaining] = useState(null);
   const [tutorError, setTutorError] = useState("");
+  const [essaySubmissions, setEssaySubmissions] = useState([]);
+  const [essayPromptId, setEssayPromptId] = useState("transporte-regional");
+  const [essayText, setEssayText] = useState("");
+  const [essayId, setEssayId] = useState(null);
+  const [essayStatus, setEssayStatus] = useState("rascunho");
+  const [essayBusy, setEssayBusy] = useState(false);
+  const [essayNotice, setEssayNotice] = useState("");
+  const [essayEvaluation, setEssayEvaluation] = useState(null);
+  const [flashcards, setFlashcards] = useState([]);
+  const [flashcardReviews, setFlashcardReviews] = useState([]);
+  const [flashcardRevealed, setFlashcardRevealed] = useState(false);
+  const [flashcardBusy, setFlashcardBusy] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState(null);
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [plannedMinutes, setPlannedMinutes] = useState(40);
@@ -323,6 +346,21 @@ export default function App() {
         .select("id, duration_minutes, topic_id, study_method, studied_at").eq("user_id", currentUser.id).order("studied_at", { ascending: false });
       if (sessionsError) throw sessionsError;
 
+      const { data: essayData, error: essayError } = await supabase.from("essay_submissions")
+        .select("id, prompt, text_content, line_count, score_adequacy, score_content, score_coherence, score_language, score_total, ai_feedback, status, created_at, ai_model")
+        .eq("user_id", currentUser.id).order("created_at", { ascending: false });
+      if (essayError) throw essayError;
+
+      const { data: flashcardData, error: flashcardError } = await supabase.from("flashcards")
+        .select("id, topic_id, front, back, difficulty")
+        .eq("is_published", true);
+      if (flashcardError) throw flashcardError;
+
+      const { data: flashcardReviewData, error: flashcardReviewError } = await supabase.from("flashcard_reviews")
+        .select("id, flashcard_id, confidence, reviewed_at, next_review_at")
+        .eq("user_id", currentUser.id).order("reviewed_at", { ascending: true });
+      if (flashcardReviewError) throw flashcardReviewError;
+
       const { data: lessonsData, error: lessonsError } = await supabase.from("topic_lessons")
         .select("topic_id, title, content, source_basis, version")
         .eq("is_published", true);
@@ -340,6 +378,9 @@ export default function App() {
       setSessions(sessionsData || []);
       setTopicLessons(lessonsData || []);
       setTopicProgressRows(progressData || []);
+      setEssaySubmissions(essayData || []);
+      setFlashcards(flashcardData || []);
+      setFlashcardReviews(flashcardReviewData || []);
     } catch (err) {
       setNotice(err.message || "Não foi possível carregar seus dados.");
     } finally {
@@ -359,6 +400,23 @@ export default function App() {
   const topicProgress = allTopics.length ? Math.round((completedTopics / allTopics.length) * 100) : 0;
   const totalStudyMinutes = sessions.reduce((sum, item) => sum + Number(item.duration_minutes || 0), 0);
   const selectedLesson = selectedTopic ? topicLessons.find((item) => item.topic_id === selectedTopic.id) : null;
+  const currentEssayPrompt = ESSAY_PROMPTS.find((item) => item.id === essayPromptId) || ESSAY_PROMPTS[0];
+  const essayLineCount = essayText.trim() ? essayText.trim().split(/\r?\n/).length : 0;
+  const latestFlashcardReviewById = useMemo(() => {
+    const map = new Map();
+    [...flashcardReviews]
+      .sort((a, b) => new Date(a.reviewed_at) - new Date(b.reviewed_at))
+      .forEach((item) => map.set(item.flashcard_id, item));
+    return map;
+  }, [flashcardReviews]);
+  const dueFlashcards = useMemo(() => {
+    const now = Date.now();
+    return flashcards.filter((card) => {
+      const latest = latestFlashcardReviewById.get(card.id);
+      return !latest || !latest.next_review_at || new Date(latest.next_review_at).getTime() <= now;
+    });
+  }, [flashcards, latestFlashcardReviewById]);
+  const currentDueFlashcard = dueFlashcards[0] || null;
   const correctAnswers = attempts.filter((item) => item.is_correct).length;
   const accuracy = attempts.length ? Math.round((correctAnswers / attempts.length) * 100) : 0;
   const daysLeft = daysUntilExam();
@@ -484,6 +542,133 @@ export default function App() {
       }]);
     } finally {
       setTutorBusy(false);
+    }
+  }
+
+  function newEssayDraft() {
+    setEssayId(null);
+    setEssayStatus("rascunho");
+    setEssayPromptId("transporte-regional");
+    setEssayText("");
+    setEssayEvaluation(null);
+    setEssayNotice("");
+  }
+
+  function openEssaySubmission(item) {
+    setEssayId(item.id);
+    setEssayStatus(item.status || "rascunho");
+    const prompt = ESSAY_PROMPTS.find((entry) => entry.prompt === item.prompt);
+    setEssayPromptId(prompt?.id || "transporte-regional");
+    setEssayText(item.text_content || "");
+    setEssayEvaluation(item.status === "corrigida"
+      ? { ...(item.ai_feedback || {}), total_score: item.score_total }
+      : null);
+    setEssayNotice("");
+  }
+
+  async function persistEssayDraft() {
+    if (!user || !exam) return null;
+    if (essayStatus === "corrigida") {
+      setEssayNotice("Esta redação já foi corrigida. Crie uma nova para fazer outra tentativa.");
+      return null;
+    }
+    if (!essayText.trim()) {
+      setEssayNotice("Escreva o texto antes de salvar.");
+      return null;
+    }
+    const lineCount = essayText.trim().split(/\r?\n/).length;
+    setEssayBusy(true);
+    setEssayNotice("");
+    try {
+      let savedId = essayId;
+      const values = {
+        user_id: user.id,
+        exam_id: exam.id,
+        prompt: currentEssayPrompt.prompt,
+        text_content: essayText,
+        line_count: lineCount,
+      };
+      if (savedId) {
+        const { error } = await supabase.from("essay_submissions")
+          .update({ prompt: values.prompt, text_content: values.text_content, line_count: lineCount })
+          .eq("id", savedId).eq("user_id", user.id).eq("status", "rascunho");
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase.from("essay_submissions")
+          .insert(values).select("id").single();
+        if (error) throw error;
+        savedId = data.id;
+        setEssayId(savedId);
+      }
+      setEssayNotice("Rascunho salvo.");
+      await loadDashboard(user);
+      return savedId;
+    } catch (err) {
+      setEssayNotice(err.message || "Não foi possível salvar o rascunho.");
+      return null;
+    } finally {
+      setEssayBusy(false);
+    }
+  }
+
+  async function requestEssayCorrection() {
+    if (essayStatus === "corrigida") {
+      setEssayNotice("Esta redação já tem correção. Crie uma nova tentativa para solicitar outra avaliação.");
+      return;
+    }
+    if (essayLineCount < 20 || essayLineCount > 30) {
+      setEssayNotice("A redação precisa ter de 20 a 30 linhas digitadas antes de solicitar a correção.");
+      return;
+    }
+    const savedId = await persistEssayDraft();
+    if (!savedId) return;
+    setEssayBusy(true);
+    setEssayNotice("Enviando para correção formativa...");
+    try {
+      const { data, error } = await supabase.functions.invoke("essay-feedback", {
+        body: { submission_id: savedId },
+      });
+      if (error) {
+        let detail = error.message || "Serviço indisponível.";
+        try {
+          const responseBody = await error.context?.json?.();
+          if (responseBody?.error) detail = responseBody.error;
+        } catch { /* conserva a mensagem genérica */ }
+        throw new Error(detail);
+      }
+      if (data?.error) throw new Error(data.error);
+      setEssayEvaluation(data.evaluation);
+      setEssayStatus("corrigida");
+      setEssayNotice("Correção formativa concluída. Esta não é uma nota oficial da banca.");
+      await loadDashboard(user);
+    } catch (err) {
+      setEssayNotice(err.message || "Não foi possível corrigir esta redação.");
+    } finally {
+      setEssayBusy(false);
+    }
+  }
+
+  async function rateFlashcard(confidence) {
+    if (!user || !currentDueFlashcard || flashcardBusy) return;
+    setFlashcardBusy(true);
+    try {
+      const reviewedAt = new Date();
+      const intervals = { 1: 1, 2: 2, 3: 4, 4: 7, 5: 15 };
+      const nextReview = new Date(reviewedAt.getTime() + intervals[confidence] * 86400000);
+      const { data, error } = await supabase.from("flashcard_reviews").insert({
+        user_id: user.id,
+        flashcard_id: currentDueFlashcard.id,
+        confidence,
+        reviewed_at: reviewedAt.toISOString(),
+        next_review_at: nextReview.toISOString(),
+      }).select("id, flashcard_id, confidence, reviewed_at, next_review_at").single();
+      if (error) throw error;
+      setFlashcardReviews((previous) => [...previous, data]);
+      setFlashcardRevealed(false);
+    } catch (err) {
+      setNotice(err.message || "Não foi possível registrar a revisão.");
+    } finally {
+      setFlashcardBusy(false);
     }
   }
 
@@ -918,6 +1103,128 @@ export default function App() {
                 </form>
               </div>
             </div>
+          </section>
+        )}
+
+        {view === "essay" && (
+          <section className="content-section">
+            <div className="page-heading">
+              <span className="eyebrow">PROVA DE REDAÇÃO · EDITAL 001/2026</span>
+              <h1>Laboratório de Redação</h1>
+              <p className="muted">Treine textos dissertativo-argumentativos e receba uma avaliação formativa pelos quatro critérios do edital.</p>
+            </div>
+            <div className="essay-rules-grid">
+              <div className="essay-rule"><strong>20–30</strong><span>linhas</span></div>
+              <div className="essay-rule"><strong>4</strong><span>critérios</span></div>
+              <div className="essay-rule"><strong>25</strong><span>pontos por critério</span></div>
+              <div className="essay-rule"><strong>100</strong><span>pontos possíveis</span></div>
+            </div>
+            <div className="essay-workspace">
+              <div className="panel essay-editor">
+                <div className="panel-heading">
+                  <div><span className="eyebrow">PROPOSTA DE TREINO</span><h2>Escolha um tema</h2></div>
+                  <button className="text-button" onClick={newEssayDraft}>Nova redação +</button>
+                </div>
+                <label className="essay-label" htmlFor="essay-prompt">Tema</label>
+                <select id="essay-prompt" className="tutor-topic-select" value={essayPromptId} disabled={essayStatus === "corrigida" && Boolean(essayId)} onChange={(event) => { setEssayPromptId(event.target.value); setEssayId(null); setEssayStatus("rascunho"); setEssayEvaluation(null); }}>
+                  {ESSAY_PROMPTS.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+                </select>
+                <div className="essay-prompt-text"><strong>Proposta:</strong> {currentEssayPrompt.prompt}</div>
+                <label className="essay-label" htmlFor="essay-text">Seu texto</label>
+                <textarea id="essay-text" className="essay-textarea" value={essayText} readOnly={essayStatus === "corrigida" && Boolean(essayId)} onChange={(event) => { setEssayText(event.target.value); setEssayEvaluation(null); }} placeholder="Escreva a introdução, desenvolva seus argumentos e conclua..." rows={18} maxLength={12000}/>
+                <div className={essayLineCount < 20 || essayLineCount > 30 ? "essay-line-meter out" : "essay-line-meter in"}>
+                  <strong>{essayLineCount}</strong><span>linhas digitadas</span><small>{essayLineCount < 20 ? "Abaixo do mínimo" : essayLineCount > 30 ? "Acima do máximo" : "Dentro da faixa do edital"}</small>
+                </div>
+                <div className="essay-line-note">O contador considera quebras de linha manuais. Na prova oficial, as linhas são manuscritas; quebras automáticas da tela não equivalem necessariamente às linhas da folha de resposta.</div>
+                {essayNotice && <div className={essayNotice.includes("concluída") || essayNotice.includes("salvo") ? "notice notice-success" : "notice notice-error"}>{essayNotice}</div>}
+                {essayStatus === "corrigida" && essayId ? (
+                  <div className="essay-actions"><button className="button button-primary" onClick={newEssayDraft}>Criar nova tentativa →</button></div>
+                ) : (
+                  <div className="essay-actions">
+                    <button className="button button-secondary" onClick={persistEssayDraft} disabled={essayBusy || !essayText.trim()}>Salvar rascunho</button>
+                    <button className="button button-primary" onClick={requestEssayCorrection} disabled={essayBusy || essayLineCount < 20 || essayLineCount > 30}>{essayBusy ? "Processando..." : "Solicitar correção por IA →"}</button>
+                  </div>
+                )}
+                <small className="muted essay-disclaimer">A correção por IA é formativa e não substitui a avaliação oficial da banca. Exige OPENAI_API_KEY nos Secrets do Supabase.</small>
+              </div>
+              <aside className="panel essay-history">
+                <span className="eyebrow">MEUS RASCUNHOS</span><h2>Histórico</h2>
+                {essaySubmissions.length === 0 ? <p className="muted small-copy">As redações salvas aparecerão aqui.</p> : essaySubmissions.map((item) => (
+                  <button className={essayId === item.id ? "essay-history-item active" : "essay-history-item"} key={item.id} onClick={() => openEssaySubmission(item)}>
+                    <strong>{ESSAY_PROMPTS.find((p) => p.prompt === item.prompt)?.title || item.prompt}</strong>
+                    <small>{new Date(item.created_at).toLocaleDateString("pt-BR")} · {item.line_count || 0} linhas</small>
+                    <span>{item.status === "corrigida" ? "Corrigida por IA" : "Rascunho"}</span>
+                    {item.score_total != null && <b>{item.score_total}/100</b>}
+                  </button>
+                ))}
+              </aside>
+            </div>
+            {essayEvaluation && (
+              <div className="panel essay-evaluation">
+                <div className="essay-evaluation-head">
+                  <div><span className="eyebrow">DEVOLUTIVA FORMATIVA</span><h2>Resultado da correção</h2></div>
+                  <div className="essay-score">{essayEvaluation.total_score ?? essayEvaluation.score_total ?? "—"}<small>/100</small></div>
+                </div>
+                <div className="essay-criteria-grid">
+                  {(essayEvaluation.criterion_feedback || []).map((criterion, index) => (
+                    <article className="essay-criterion" key={index}>
+                      <strong>{criterion.criterion}</strong><b>{criterion.score}/25</b>
+                      <p>{criterion.comments}</p><small>{criterion.improvement}</small>
+                    </article>
+                  ))}
+                </div>
+                <div className="essay-feedback-columns">
+                  <div><h3>Pontos fortes</h3><ul>{(essayEvaluation.strengths || []).map((x,i)=><li key={i}>{x}</li>)}</ul></div>
+                  <div><h3>O que melhorar</h3><ul>{(essayEvaluation.improvements || []).map((x,i)=><li key={i}>{x}</li>)}</ul></div>
+                </div>
+                <p className="muted small-copy">{essayEvaluation.general_feedback}</p>
+                <p className="muted small-copy">{essayEvaluation.line_count_comment}</p>
+                <div className="notice notice-success">Esta pontuação é uma estimativa pedagógica gerada por IA, não uma nota oficial.</div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {view === "reviews" && (
+          <section className="content-section">
+            <div className="page-heading">
+              <span className="eyebrow">MEMORIZAÇÃO ATIVA</span>
+              <h1>Revisões e flashcards</h1>
+              <p className="muted">Responda de memória, revele o verso e marque o quanto lembrou. Os cartões voltam em intervalos crescentes.</p>
+            </div>
+            <div className="stat-grid">
+              <StatCard label="Cartões cadastrados" value={String(flashcards.length)} helper="Um cartão inicial por tópico" icon="▤" />
+              <StatCard label="Para revisar agora" value={String(dueFlashcards.length)} helper="Novos cartões e revisões vencidas" icon="↻" />
+              <StatCard label="Revisões realizadas" value={String(flashcardReviews.length)} helper="Histórico salvo na sua conta" icon="✓" />
+              <StatCard label="Próximo intervalo" value="1–15 dias" helper="Conforme sua autoavaliação" icon="◷" />
+            </div>
+            <div className="panel flashcard-panel">
+              {currentDueFlashcard ? (
+                <>
+                  <div className="flashcard-top"><span className="eyebrow">FLASHCARD · {currentDueFlashcard.difficulty}</span><span className="muted small-copy">{dueFlashcards.length} pendentes</span></div>
+                  <div className="flashcard-face">
+                    <span className="eyebrow">PERGUNTA</span><h2>{currentDueFlashcard.front}</h2>
+                    <div className="flashcard-topic-label">{allTopics.find((topic) => topic.id === currentDueFlashcard.topic_id)?.title || "Tópico do edital"}</div>
+                    {!flashcardRevealed ? (
+                      <button className="button button-primary" onClick={() => setFlashcardRevealed(true)}>Revelar resposta</button>
+                    ) : (
+                      <div className="flashcard-answer">
+                        <span className="eyebrow">RESPOSTA / EXPLICAÇÃO</span><p>{currentDueFlashcard.back}</p>
+                        <div className="flashcard-rating">
+                          <span>Quanto você lembrou?</span>
+                          {[[1,"Não lembrei"],[2,"Com dificuldade"],[3,"Parcialmente"],[4,"Quase tudo"],[5,"Dominei"]].map(([value,label]) => (
+                            <button key={value} className={"flash-rating rate-" + value} disabled={flashcardBusy} onClick={() => rateFlashcard(value)}>{label}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flashcard-empty"><span>✓</span><h2>Você está em dia!</h2><p className="muted">Não há cartões vencidos agora. Os próximos retornam conforme os intervalos de revisão.</p></div>
+              )}
+            </div>
+            <div className="notice notice-success review-method-note"><strong>Como funciona:</strong> Não lembrei: 1 dia · Com dificuldade: 2 dias · Parcialmente: 4 dias · Quase tudo: 7 dias · Dominei: 15 dias. A agenda é baseada na sua autoavaliação.</div>
           </section>
         )}
 

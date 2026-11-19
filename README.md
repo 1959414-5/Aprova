@@ -10,7 +10,7 @@ Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [d
 ## Stack
 - React + Vite
 - Supabase Auth e Postgres
-- Supabase Edge Functions para correção de respostas e Professor IA
+- Supabase Edge Functions para correção, tutor e redação
 - OpenAI Responses API, com chave armazenada somente nos Secrets do Supabase
 
 ## Executar localmente
@@ -26,29 +26,38 @@ Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [d
 - Diagnóstico curto com 22 questões, distribuídas proporcionalmente.
 - Simulado completo com 70 questões e os pesos exatos da prova objetiva: 10/10/10/10/30 questões e 100 pontos.
 - Banco inicial de 70 questões autorais, todas identificadas como geradas para treino e pendentes de revisão humana.
-- No simulado, o gabarito fica oculto durante a execução; a nota ponderada e o gabarito comentado são liberados apenas após finalizar.
+- No simulado, o gabarito fica oculto durante a execução; a nota ponderada e o gabarito comentado são liberados após finalizar.
+- Laboratório de Redação com temas de treino, rascunhos, contador de linhas e devolutiva formativa pelos quatro critérios do edital.
+- Revisões e flashcards: um cartão inicial por tópico, com intervalos de 1, 2, 4, 7 e 15 dias.
 
 ## Supabase
-Projeto: `ehsrjjflwrmmegfvupch`. O schema original tem 15 tabelas com RLS habilitado. Tabelas adicionais:
+Projeto: `ehsrjjflwrmmegfvupch`. O schema original tem RLS habilitado. Tabelas e estruturas adicionais:
 - `topic_lessons`: leitura autenticada de aulas publicadas.
 - `topic_progress`: progresso isolado por usuário.
-- `ai_tutor_usage`: controle privado de chamadas do tutor.
+- `ai_tutor_usage`: controle privado de consumo de IA, separado por tipo de solicitação.
 
 Edge Functions:
-- `answer-question`: registra a resposta; só revela correção imediata no diagnóstico/prática.
+- `answer-question`: registra resposta; correção imediata somente no diagnóstico/prática.
 - `finish-assessment`: calcula a nota e libera gabarito somente após a finalização.
 - `study-tutor`: tutor contextualizado pelo tópico selecionado.
+- `essay-feedback`: correção formativa de redação com rubrica estruturada.
 
 SQLs versionados em `supabase/sql/`.
 
-## Ativar o Professor IA
-A função está implantada, mas precisa da chave da OpenAI no secret `OPENAI_API_KEY` do Supabase. Siga [docs/PROFESSOR-IA.md](docs/PROFESSOR-IA.md). A chave não deve ficar em `.env`, VITE, GitHub ou no navegador. O faturamento da API é separado da assinatura ChatGPT.
+## Ativar e pagar o Professor IA
+A chave `OPENAI_API_KEY` deve existir em Supabase → Edge Functions → Secrets. A chave nunca deve ficar em `.env`, variáveis `VITE_*`, GitHub ou navegador.
+
+A API da OpenAI é faturada separadamente da assinatura ChatGPT. Novas contas usam faturamento pré-pago; a compra inicial mínima é de US$ 5. Durante a configuração, confira e desative a recarga automática se preferir comprar créditos manualmente. Consulte [a orientação de faturamento pré-pago](https://help.openai.com/pt-br/articles/8264644-setting-up-and-managing-prepaid-api-billing).
+
+O modelo padrão no servidor é `gpt-6.2-sol`. O limite é de até 35 perguntas/dia por conta no tutor e 35 solicitações/dia por conta na correção de redações. As cotas são separadas; os limites internos não representam o saldo da conta OpenAI.
+
+Mais detalhes: [docs/PROFESSOR-IA.md](docs/PROFESSOR-IA.md).
 
 ## Segurança
-O repositório é público. Não inclua service-role/secret key, chaves de provedores de IA ou gabaritos nas fontes versionadas. A publishable key é apropriada para o frontend com RLS habilitado.
+O repositório é público. Não inclua service-role/secret key, chaves de provedores de IA, credenciais ou gabaritos nas fontes versionadas. A publishable key é apropriada para o frontend com RLS habilitado.
 
 ## Fontes
 - Edital nº 001/2026 — Anexos II e III.
 - Caderno histórico SBMG 2019 — Auxiliar Administrativo: [prova](https://arquivos.qconcursos.com/prova/arquivo_prova/80482/fauel-2019-sbmg-pr-auxiliar-administrativo-prova.pdf) e [gabarito](https://arquivos.qconcursos.com/prova/arquivo_gabarito/80482/fauel-2019-sbmg-pr-auxiliar-administrativo-gabarito.pdf).
 
-**Importante:** questões autorais não são itens oficiais do caderno de 2019 nem da prova de 2026.
+**Importante:** as 70 questões atuais e os temas de redação são autorais. Não são itens oficiais do caderno de 2019 nem da prova de 2026; precisam de revisão humana independente.

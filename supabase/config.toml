@@ -8,3 +8,6 @@ verify_jwt = true
 
 [functions.study-tutor]
 verify_jwt = true
+
+[functions.essay-feedback]
+verify_jwt = true

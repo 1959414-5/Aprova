@@ -95,7 +95,8 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .from("ai_tutor_usage")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .gte("created_at", dayStart);
+      .gte("created_at", dayStart)
+      .eq("request_type", "tutor");
 
     if (usageQueryError) {
       console.error("Falha ao consultar limite diário do Professor IA:", usageQueryError.message);
@@ -108,7 +109,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       }, 429, headers);
     }
 
-    const model = Deno.env.get("OPENAI_MODEL") || "gpt-6-astra";
+    const model = Deno.env.get("OPENAI_MODEL") || "gpt-6.2-sol";
     const instructions = [
       "Você é o Professor IA do SBMG Aprova, tutor de preparação para o concurso de Auxiliar Administrativo/Financeiro da SBMG.",
       "Responda sempre em português do Brasil, com linguagem clara e didática, adequada a um candidato iniciante.",
@@ -159,6 +160,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         input_chars: message.length,
         model,
         response_status: "failed",
+        request_type: "tutor",
       });
       return json({ error: "O Professor IA não conseguiu responder agora. Tente novamente em instantes." }, 502, headers);
     }
@@ -181,6 +183,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       input_chars: message.length,
       model,
       response_status: "completed",
+      request_type: "tutor",
     });
     if (usageInsertError) {
       console.error("Não foi possível registrar uso do Professor IA:", usageInsertError.message);
