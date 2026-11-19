@@ -27,7 +27,9 @@ Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [d
 - Simulado completo com 70 questões e os pesos exatos da prova objetiva: 10/10/10/10/30 questões e 100 pontos.
 - Banco inicial de 70 questões autorais, todas identificadas como geradas para treino e pendentes de revisão humana.
 - No simulado, o gabarito fica oculto durante a execução; a nota ponderada e o gabarito comentado são liberados após finalizar.
-- Laboratório de Redação com temas de treino, rascunhos, contador de linhas e devolutiva formativa pelos quatro critérios do edital.
+- Curso de Redação guiado por seis aulas autorais: fundamentos do texto dissertativo-argumentativo, estrutura, tema e tese, argumentação, coesão/linguagem e conclusão/revisão.
+- Cada aula inclui explicação, exemplos comentados e exercício com resposta explicada; a plataforma salva as respostas e aulas concluídas por usuário em `essay_learning_progress`.
+- Área de prática com exercícios, análise de redação-modelo autoral, explicação da rubrica do edital e Laboratório de Redação com temas, rascunhos, contador de 20–30 linhas e correção formativa por quatro critérios.
 - Revisões e flashcards: um cartão inicial por tópico, com intervalos de 1, 2, 4, 7 e 15 dias.
 
 ## Supabase
