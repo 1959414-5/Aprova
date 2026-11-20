@@ -2292,6 +2292,14 @@ code { background: var(--surface-2); padding: 2px 5px; border-radius: 5px; color
 .lesson-learning-card-title-row h3 { margin:0; font-size:14px; line-height:1.5; }
 .lesson-concept-tag { font-size:8px; font-weight:800; letter-spacing:.08em; padding:4px 7px; border-radius:99px; background:var(--surface-2); color:var(--text-soft); }
 .lesson-learning-card-content > p { font-size:12px; line-height:1.85; color:var(--text); margin:10px 0 14px; }
+.lesson-deep-explanation,.lesson-application,.lesson-exam-trap,.lesson-attention-note { margin:10px 0; padding:12px 13px; border-radius:12px; border:1px solid var(--line); background:var(--surface-2); }
+.lesson-deep-explanation { border-left:3px solid var(--mint-strong); }
+.lesson-deep-explanation p,.lesson-application p,.lesson-exam-trap p,.lesson-attention-note p { margin:7px 0 0; font-size:11px; line-height:1.85; color:var(--text); white-space:pre-line; }
+.lesson-application { background:var(--success-bg); }
+.lesson-exam-trap { border-color:rgba(245,180,80,.45); background:rgba(245,180,80,.09); }
+.lesson-exam-trap p { color:var(--text); }
+.lesson-attention-note { border-left:3px solid var(--line-strong,var(--line)); }
+.lesson-deep-explanation .eyebrow { color:var(--mint-deep); }
 .lesson-recall-check { display:grid; gap:7px; padding:12px; border-radius:12px; background:var(--surface-2); border:1px solid var(--line); }
 .lesson-recall-check strong { font-size:11px; line-height:1.6; }
 .lesson-recall-toggle { justify-self:start; padding:0; font-size:10px; }
