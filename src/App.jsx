@@ -190,34 +190,72 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
   const [understoodSections, setUnderstoodSections] = useState(() => Array.isArray(progress?.lesson_state?.understood_sections) ? progress.lesson_state.understood_sections : []);
   const [revealedChecks, setRevealedChecks] = useState(() => Array.isArray(progress?.lesson_state?.revealed_checks) ? progress.lesson_state.revealed_checks : []);
   const [challengeRevealed, setChallengeRevealed] = useState(() => progress?.lesson_state?.challenge_revealed === true);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(() => {
+    const savedIndex = Number(progress?.lesson_state?.current_section_index);
+    return Number.isInteger(savedIndex) && savedIndex >= 0 ? savedIndex : 0;
+  });
   const [progressSaveState, setProgressSaveState] = useState("saved");
   const progressSaveVersionRef = useRef(0);
   const content = lesson?.content || {};
   const sections = content.sections || [];
+  const safeSectionIndex = Math.min(currentSectionIndex, sections.length);
+  const currentSection = sections[safeSectionIndex] || null;
+  const isFinalReview = sections.length > 0 && safeSectionIndex === sections.length;
   const lessonProgressPercent = sections.length ? Math.round((understoodSections.length / sections.length) * 100) : 0;
+
+  useEffect(() => {
+    const saved = progress?.lesson_state || {};
+    setUnderstoodSections(Array.isArray(saved.understood_sections) ? saved.understood_sections : []);
+    setRevealedChecks(Array.isArray(saved.revealed_checks) ? saved.revealed_checks : []);
+    setChallengeRevealed(saved.challenge_revealed === true);
+    const savedIndex = Number(saved.current_section_index);
+    setCurrentSectionIndex(Number.isInteger(savedIndex) && savedIndex >= 0
+      ? Math.min(savedIndex, sections.length)
+      : 0);
+  }, [topic.id, progress?.lesson_state, sections.length]);
   function persistLearningState(nextState) {
     const version = ++progressSaveVersionRef.current;
     setProgressSaveState("saving");
-    Promise.resolve(onSaveLearningState(nextState)).then(() => {
+    Promise.resolve(onSaveLearningState({
+      ...nextState,
+      current_section_index: safeSectionIndex,
+    })).then(() => {
       if (version === progressSaveVersionRef.current) setProgressSaveState("saved");
     }).catch(() => {
       if (version === progressSaveVersionRef.current) setProgressSaveState("error");
     });
   }
+  function goToSection(nextIndex) {
+    const boundedIndex = Math.max(0, Math.min(nextIndex, sections.length));
+    setCurrentSectionIndex(boundedIndex);
+    const version = ++progressSaveVersionRef.current;
+    setProgressSaveState("saving");
+    Promise.resolve(onSaveLearningState({
+      understood_sections: understoodSections,
+      revealed_checks: revealedChecks,
+      challenge_revealed: challengeRevealed,
+      current_section_index: boundedIndex,
+    })).then(() => {
+      if (version === progressSaveVersionRef.current) setProgressSaveState("saved");
+    }).catch(() => {
+      if (version === progressSaveVersionRef.current) setProgressSaveState("error");
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   function toggleSectionUnderstood(index) {
     const next = understoodSections.includes(index) ? understoodSections.filter((item) => item !== index) : [...understoodSections, index];
     setUnderstoodSections(next);
-    persistLearningState({ understood_sections: next, revealed_checks: revealedChecks, challenge_revealed: challengeRevealed });
+    persistLearningState({ understood_sections: next, revealed_checks: revealedChecks, challenge_revealed: challengeRevealed, current_section_index: safeSectionIndex });
   }
   function toggleCheckReveal(index) {
     const next = revealedChecks.includes(index) ? revealedChecks.filter((item) => item !== index) : [...revealedChecks, index];
     setRevealedChecks(next);
-    persistLearningState({ understood_sections: understoodSections, revealed_checks: next, challenge_revealed: challengeRevealed });
+    persistLearningState({ understood_sections: understoodSections, revealed_checks: next, challenge_revealed: challengeRevealed, current_section_index: safeSectionIndex });
   }
   function toggleChallengeReveal() {
     const next = !challengeRevealed;
     setChallengeRevealed(next);
-    persistLearningState({ understood_sections: understoodSections, revealed_checks: revealedChecks, challenge_revealed: next });
+    persistLearningState({ understood_sections: understoodSections, revealed_checks: revealedChecks, challenge_revealed: next, current_section_index: safeSectionIndex });
   }
   const hasActiveSession = activeSession?.kind === "topico" && activeSession?.topicId === topic.id;
   const anotherSessionActive = Boolean(activeSession) && !hasActiveSession;
@@ -253,20 +291,131 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
       </div>
       {!lesson && <div className="notice notice-success">Esta aula ainda está em preparação. O tópico do edital já está cadastrado.</div>}
       {lesson && <>
-        <div className="lesson-start-card"><div className="lesson-start-icon">✦</div><div><span className="eyebrow">MISSÃO DE APRENDIZAGEM</span><h3>Aprenda uma parte por vez. Não tente decorar tudo de uma vez.</h3><p>Leia o bloco, pare por alguns segundos e tente explicar a ideia sem olhar. Isso transforma leitura em memória.</p></div></div>
-        <div className="lesson-learning-map"><div className="lesson-learning-map-head"><div><span className="eyebrow">TRILHA DA AULA</span><strong>{understoodSections.length} de {sections.length} etapas dominadas</strong></div><span className="lesson-map-percent">{lessonProgressPercent}%</span></div><div className="lesson-map-track"><span style={{width: lessonProgressPercent + "%"}} /></div><small className="lesson-progress-save-status" aria-live="polite">{progressSaveState === "saving" ? "Salvando suas marcações…" : progressSaveState === "error" ? "Falha ao salvar. Tente marcar novamente." : "Marcações salvas automaticamente"}</small><div className="lesson-map-steps">{sections.map((section,index)=><button key={index} className={understoodSections.includes(index) ? "lesson-map-step done" : "lesson-map-step"} onClick={() => document.getElementById("lesson-step-"+index).scrollIntoView({behavior:"smooth",block:"center"})} title={"Ir para: "+section.heading}><span>{understoodSections.includes(index) ? "✓" : index+1}</span></button>)}</div></div>
-        {studyMode && <div className="lesson-content-section-heading"><span className="eyebrow">AULA COMPLETA</span><h3>Conteúdo explicado passo a passo</h3><p>Leia os blocos abaixo. Marque cada etapa quando conseguir explicar o conceito sem consultar.</p></div>}
-        <div className="lesson-hook-card"><span className="eyebrow">GANCHO · PENSE ANTES DE LER</span><p>{content.hook || "Antes de estudar, pense em uma situação real em que esse conceito pode aparecer."}</p></div>
-        <LessonVisualAid topic={topic} content={content} />
-        <div className="lesson-section lesson-objectives-card"><span className="eyebrow">AO FINAL, VOCÊ CONSEGUIRÁ</span><ul className="lesson-objectives">{(content.objectives || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
-        <div className="lesson-section lesson-article"><div className="lesson-article-heading"><span className="eyebrow">APRENDA EM BLOCOS CURTOS</span><p className="muted">Cada bloco tem uma ideia principal e um mini desafio de memória.</p></div>{sections.map((section, index) => <article id={"lesson-step-"+index} className={understoodSections.includes(index) ? "lesson-learning-card understood" : "lesson-learning-card"} key={index}><div className="lesson-learning-card-number">{understoodSections.includes(index) ? "✓" : String(index+1).padStart(2,"0")}</div><div className="lesson-learning-card-content"><div className="lesson-learning-card-title-row"><h3>{section.heading}</h3><span className="lesson-concept-tag">IDEIA-CHAVE</span></div><p>{section.text}</p>{section.explanation && <div className="lesson-deep-explanation"><span className="eyebrow">ENTENDA DE VERDADE</span><p>{section.explanation}</p></div>}{section.application && <div className="lesson-application"><strong>🗂️ Aplicação na rotina administrativa</strong><p>{section.application}</p></div>}{section.exam_trap && <div className="lesson-exam-trap"><strong>⚠️ Pegadinha de prova</strong><p>{section.exam_trap}</p></div>}{section.attention && <div className="lesson-attention-note"><strong>🔎 Atenção a esta diferença</strong><p>{section.attention}</p></div>}<div className="lesson-recall-check"><span className="eyebrow">PARE E RECUPERE DA MEMÓRIA</span><strong>Sem olhar o texto: como você explicaria "{section.heading}" para alguém?</strong><button className="text-button lesson-recall-toggle" onClick={() => toggleCheckReveal(index)}>{revealedChecks.includes(index) ? "Ocultar referência" : "Ver referência para conferir"}</button>{revealedChecks.includes(index) && <div className="lesson-recall-answer"><strong>Confira:</strong> {section.text}<p>Se você explicou a ideia com suas próprias palavras, avance. Se não, releia e tente novamente.</p></div>}</div><button className={understoodSections.includes(index) ? "lesson-understood-button active" : "lesson-understood-button"} onClick={() => toggleSectionUnderstood(index)}>{understoodSections.includes(index) ? "✓ Marquei como entendido" : "Marcar como entendido"}</button></div></article>)}</div>
-        {content.worked_example && <div className="lesson-example lesson-example-visual"><span className="eyebrow">🧩 EXEMPLO RESOLVIDO — RACIOCÍNIO VISUAL</span><h3>{content.worked_example.prompt}</h3><div className="lesson-example-flow">{(content.worked_example.steps || []).map((step, index) => <div className="lesson-example-flow-step" key={index}><span className="lesson-flow-number">{index+1}</span><p>{step}</p>{index < content.worked_example.steps.length-1 && <span className="lesson-flow-arrow">↓</span>}</div>)}</div><p className="lesson-result"><strong>🎯 Conclusão:</strong> {content.worked_example.result}</p></div>}
-        <div className="lesson-two-column">
-          <div className="lesson-section lesson-summary"><span className="eyebrow">⚡ REVISÃO EM 30 SEGUNDOS</span><ul>{(content.summary || []).map((item, index) => <li key={index}><span className="lesson-summary-bullet">{index+1}</span>{item}</li>)}</ul></div>
-          <div className="lesson-section lesson-mistakes"><span className="eyebrow">⚠️ PEGADINHAS QUE PODEM CUSTAR PONTOS</span><ul>{(content.common_mistakes || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
+        <div className="lesson-sequence-intro">
+          <span className="eyebrow">ESTUDO GUIADO · UM TÓPICO POR VEZ</span>
+          <strong>{isFinalReview ? "Revisão final da aula" : `Tópico ${safeSectionIndex + 1} de ${sections.length}`}</strong>
+          <small>{isFinalReview ? "Feche o estudo revisando os exemplos e as pegadinhas." : "Leia este card com atenção. Quando terminar, marque como entendido e avance para o próximo."}</small>
         </div>
-        {content.challenge && <div className="lesson-challenge-card"><span className="eyebrow">DESAFIO FINAL · TESTE SUA COMPREENSÃO</span><h3>{content.challenge.prompt}</h3><button className="text-button" onClick={toggleChallengeReveal}>{challengeRevealed ? "Ocultar resposta" : "Conferir resposta e raciocínio"}</button>{challengeRevealed && <div className="lesson-challenge-answer"><strong>Resposta comentada</strong><p>{content.challenge.answer}</p></div>}</div>}
-        {content.practice && <div className="lesson-practice"><span className="eyebrow">ATIVIDADE DE FIXAÇÃO</span><h3>{content.practice}</h3><p className="muted">Resolva no caderno ou explique a resposta com suas palavras. Depois, pratique questões do banco.</p></div>}
+        <div className="lesson-learning-map">
+          <div className="lesson-learning-map-head">
+            <div>
+              <span className="eyebrow">PROGRESSO DA AULA</span>
+              <strong>{understoodSections.length} de {sections.length} tópicos dominados</strong>
+            </div>
+            <span className="lesson-map-percent">{lessonProgressPercent}%</span>
+          </div>
+          <div className="lesson-map-track"><span style={{width: lessonProgressPercent + "%"}} /></div>
+          <small className="lesson-progress-save-status" aria-live="polite">
+            {progressSaveState === "saving" ? "Salvando seu progresso…" : progressSaveState === "error" ? "Não foi possível salvar. Tente novamente." : "Progresso salvo automaticamente"}
+          </small>
+        </div>
+        <div className="lesson-article">
+          {currentSection && !isFinalReview && (
+            <article id="lesson-step-current" className={understoodSections.includes(safeSectionIndex) ? "lesson-learning-card understood lesson-learning-card-single" : "lesson-learning-card lesson-learning-card-single"} key={safeSectionIndex}>
+              <div className="lesson-learning-card-number">{understoodSections.includes(safeSectionIndex) ? "✓" : String(safeSectionIndex + 1).padStart(2, "0")}</div>
+              <div className="lesson-learning-card-content">
+                {safeSectionIndex === 0 && (
+                  <div className="lesson-first-topic-context">
+                    <span className="eyebrow">CONTEXTO DA AULA</span>
+                    <p>{content.hook || content.introduction}</p>
+                    {content.objectives?.length > 0 && (
+                      <div className="lesson-first-topic-objectives">
+                        <strong>O que você vai aprender nesta aula</strong>
+                        <ul>{content.objectives.map((item, index) => <li key={index}>{item}</li>)}</ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="lesson-learning-card-title-row">
+                  <h3>{currentSection.heading}</h3>
+                  <span className="lesson-concept-tag">TÓPICO {safeSectionIndex + 1}</span>
+                </div>
+                <p>{currentSection.text}</p>
+                {currentSection.explanation && <div className="lesson-deep-explanation"><span className="eyebrow">ENTENDA DE VERDADE</span><p>{currentSection.explanation}</p></div>}
+                {currentSection.application && <div className="lesson-application"><strong>🗂️ Aplicação na rotina administrativa</strong><p>{currentSection.application}</p></div>}
+                {currentSection.exam_trap && <div className="lesson-exam-trap"><strong>⚠️ Pegadinha de prova</strong><p>{currentSection.exam_trap}</p></div>}
+                {currentSection.attention && <div className="lesson-attention-note"><strong>🔎 Atenção a esta diferença</strong><p>{currentSection.attention}</p></div>}
+                <div className="lesson-recall-check">
+                  <span className="eyebrow">PARE E RECUPERE DA MEMÓRIA</span>
+                  <strong>Sem olhar o texto: como você explicaria “{currentSection.heading}” para alguém?</strong>
+                  <button className="text-button lesson-recall-toggle" onClick={() => toggleCheckReveal(safeSectionIndex)}>
+                    {revealedChecks.includes(safeSectionIndex) ? "Ocultar referência" : "Ver referência para conferir"}
+                  </button>
+                  {revealedChecks.includes(safeSectionIndex) && (
+                    <div className="lesson-recall-answer">
+                      <strong>Confira:</strong> {currentSection.text}
+                      <p>Se você explicou a ideia com suas próprias palavras, avance. Se não, releia e tente novamente.</p>
+                    </div>
+                  )}
+                </div>
+                <button className={understoodSections.includes(safeSectionIndex) ? "lesson-understood-button active" : "lesson-understood-button"} onClick={() => toggleSectionUnderstood(safeSectionIndex)}>
+                  {understoodSections.includes(safeSectionIndex) ? "✓ Tópico entendido" : "Marcar tópico como entendido"}
+                </button>
+              </div>
+            </article>
+          )}
+
+          {isFinalReview && (
+            <article className="lesson-final-review-card">
+              {content.worked_example && (
+                <section className="lesson-example lesson-example-visual">
+                  <span className="eyebrow">🧩 EXEMPLO RESOLVIDO · PASSO A PASSO</span>
+                  <h3>{content.worked_example.prompt}</h3>
+                  <div className="lesson-example-flow">
+                    {(content.worked_example.steps || []).map((step, index) => (
+                      <div className="lesson-example-flow-step" key={index}>
+                        <span className="lesson-flow-number">{index + 1}</span>
+                        <p>{step}</p>
+                        {index < content.worked_example.steps.length - 1 && <span className="lesson-flow-arrow">↓</span>}
+                      </div>
+                    ))}
+                  </div>
+                  <p className="lesson-result"><strong>🎯 Conclusão:</strong> {content.worked_example.result}</p>
+                </section>
+              )}
+              <div className="lesson-two-column">
+                <section className="lesson-section lesson-summary">
+                  <span className="eyebrow">⚡ REVISÃO EM 30 SEGUNDOS</span>
+                  <ul>{(content.summary || []).map((item, index) => <li key={index}><span className="lesson-summary-bullet">{index + 1}</span>{item}</li>)}</ul>
+                </section>
+                <section className="lesson-section lesson-mistakes">
+                  <span className="eyebrow">⚠️ PEGADINHAS QUE PODEM CUSTAR PONTOS</span>
+                  <ul>{(content.common_mistakes || []).map((item, index) => <li key={index}>{item}</li>)}</ul>
+                </section>
+              </div>
+              {content.challenge && (
+                <section className="lesson-challenge-card">
+                  <span className="eyebrow">DESAFIO FINAL · TESTE SUA COMPREENSÃO</span>
+                  <h3>{content.challenge.prompt}</h3>
+                  <button className="text-button" onClick={toggleChallengeReveal}>{challengeRevealed ? "Ocultar resposta" : "Conferir resposta e raciocínio"}</button>
+                  {challengeRevealed && <div className="lesson-challenge-answer"><strong>Resposta comentada</strong><p>{content.challenge.answer}</p></div>}
+                </section>
+              )}
+              {content.practice && (
+                <section className="lesson-practice">
+                  <span className="eyebrow">ATIVIDADE DE FIXAÇÃO</span>
+                  <h3>{content.practice}</h3>
+                  <p className="muted">Resolva no caderno ou explique a resposta com suas palavras. Depois, pratique questões do banco.</p>
+                </section>
+              )}
+            </article>
+          )}
+          <nav className="lesson-step-navigation" aria-label="Navegação da aula">
+            <button className="button button-secondary" onClick={() => goToSection(safeSectionIndex - 1)} disabled={safeSectionIndex === 0}>
+              ← Anterior
+            </button>
+            <span className="lesson-step-position">
+              {isFinalReview ? "Revisão final" : `Tópico ${safeSectionIndex + 1} de ${sections.length}`}
+            </span>
+            {!isFinalReview ? (
+              <button className="button button-primary" onClick={() => goToSection(safeSectionIndex + 1)} disabled={!currentSection || busy}>
+                {safeSectionIndex === sections.length - 1 ? "Ir para revisão final →" : "Próximo tópico →"}
+              </button>
+            ) : (
+              <span className="lesson-step-complete">Conteúdo revisado</span>
+            )}
+          </nav>
+        </div>
       </>}
       <div className="lesson-session-footer">
         <div className="lesson-progress-copy">
