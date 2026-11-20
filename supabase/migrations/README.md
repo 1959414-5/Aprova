@@ -17,3 +17,8 @@ Migration `20261120115101_security_least_privilege_rls_performance.sql` was appl
 ## 2026-11-20 — Simulation pools
 
 Migration `20261120121828_simulation_question_pool_versions.sql` adds the A/B/C label and an index for published simulation pools. Migration `20261120123106_require_explicit_simulation_version_and_read.sql` removes the implicit default so new questions must declare their pool, and grants authenticated clients read access only to the version label. The database contains three full 70-question sets; the application rotates per user after completed full simulations.
+
+
+## 2026-11-20 — Diagnostic result recovery permissions
+
+Migration `20261120130500_diagnostic_results_read_grants.sql` restores authenticated SELECT access to `assessment_runs` and `question_attempts` (and the required INSERT/UPDATE privileges) for the diagnostic recovery UI. Existing RLS policies continue to restrict records to the authenticated user's own data.
