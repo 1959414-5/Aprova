@@ -2620,7 +2620,7 @@ export default function App() {
         )}
 
         {(view === "diagnostic" || view === "simulation") && !currentQuestion && (
-          <section className="content-section"><div className="empty-state"><h2>Diagnóstico inicial</h2><p>O objetivo é identificar o que você já domina e o que precisa estudar desde o começo.</p><button className="button button-primary" onClick={startDiagnostic}>Iniciar diagnóstico</button></div></section>
+          <section className="content-section"><div className="empty-state"><h2>{completedDiagnosticResult ? "Diagnóstico concluído" : pendingDiagnosticResume ? "Diagnóstico em andamento" : "Diagnóstico inicial"}</h2><p>{completedDiagnosticResult ? "Seu diagnóstico já foi realizado e está salvo. Você pode consultar seu resultado sem refazer as questões." : pendingDiagnosticResume ? "Existe uma tentativa em andamento. Você pode continuar de onde parou." : "O objetivo é identificar o que você já domina e o que precisa estudar desde o começo."}</p><button className="button button-primary" onClick={pendingDiagnosticResume ? startDiagnostic : completedDiagnosticResult ? showCompletedDiagnostic : startDiagnostic}>{pendingDiagnosticResume ? "Retomar diagnóstico" : completedDiagnosticResult ? "Ver resultado salvo" : "Iniciar diagnóstico"}</button></div></section>
         )}
 
         {view === "results" && quizResult && (
