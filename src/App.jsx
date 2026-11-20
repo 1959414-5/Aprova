@@ -2050,10 +2050,13 @@ export default function App() {
                     const topics = row.topics || [];
                     const topicProgressPercent = (topic) => {
                       if (completedTopicIds.has(topic.id)) return 100;
-                      const minutesStudied = sessions.filter((session) => session.topic_id === topic.id)
+                      const savedMinutes = sessions.filter((session) => session.topic_id === topic.id)
                         .reduce((sum, session) => sum + Number(session.duration_minutes || 0), 0);
+                      const liveMinutes = activeSession?.kind === "topico" && activeSession.topicId === topic.id
+                        ? Math.max(0, elapsedSeconds / 60)
+                        : 0;
                       const referenceMinutes = Math.max(1, Number(topic.estimated_minutes || 60));
-                      return Math.min(99, Math.round(minutesStudied / referenceMinutes * 100));
+                      return Math.min(99, Math.round((savedMinutes + liveMinutes) / referenceMinutes * 100));
                     };
                     const studied = topics.filter((topic) => completedTopicIds.has(topic.id)).length;
                     const subjectProgress = topics.length
