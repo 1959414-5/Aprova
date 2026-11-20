@@ -2530,3 +2530,22 @@ textarea { width:100%; }
   font-size: 10px;
   line-height: 1.5;
 }
+
+.topic-session-status-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-1);
+  color: var(--text);
+  font-size: 12px;
+}
+.topic-session-status-strip .session-live-dot {
+  flex: 0 0 auto;
+}
+.topic-session-status-strip strong {
+  color: var(--accent);
+}
