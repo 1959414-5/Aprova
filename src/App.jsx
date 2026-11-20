@@ -1236,8 +1236,11 @@ export default function App() {
   }
 
   function newEssayDraft() {
-    const completedEssayCount = essaySubmissions.filter((item) => item.status === "corrigida").length;
-    const nextPrompt = ESSAY_PROMPTS[completedEssayCount % ESSAY_PROMPTS.length];
+    const latestCompletedEssay = essaySubmissions.find((item) => item.status === "corrigida");
+    const latestPromptIndex = latestCompletedEssay
+      ? ESSAY_PROMPTS.findIndex((item) => item.prompt === latestCompletedEssay.prompt)
+      : -1;
+    const nextPrompt = ESSAY_PROMPTS[(latestPromptIndex + 1 + ESSAY_PROMPTS.length) % ESSAY_PROMPTS.length];
     setEssayId(null);
     setEssayStatus("rascunho");
     setEssayPromptId(nextPrompt.id);
