@@ -195,6 +195,7 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
     return Number.isInteger(savedIndex) && savedIndex >= 0 ? savedIndex : 0;
   });
   const [progressSaveState, setProgressSaveState] = useState("saved");
+  const [nextTopicWarning, setNextTopicWarning] = useState(false);
   const progressSaveVersionRef = useRef(0);
   const content = lesson?.content || {};
   const sections = content.sections || [];
@@ -226,6 +227,11 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
     });
   }
   function goToSection(nextIndex) {
+    if (nextIndex > safeSectionIndex && !understoodSections.includes(safeSectionIndex)) {
+      setNextTopicWarning(true);
+      return;
+    }
+    setNextTopicWarning(false);
     const boundedIndex = Math.max(0, Math.min(nextIndex, sections.length));
     setCurrentSectionIndex(boundedIndex);
     const version = ++progressSaveVersionRef.current;
@@ -241,10 +247,15 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
       if (version === progressSaveVersionRef.current) setProgressSaveState("error");
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setTimeout(() => {
+      const lessonPanel = document.getElementById("topic-lesson");
+      if (lessonPanel) lessonPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   }
   function toggleSectionUnderstood(index) {
     const next = understoodSections.includes(index) ? understoodSections.filter((item) => item !== index) : [...understoodSections, index];
     setUnderstoodSections(next);
+    if (next.includes(index)) setNextTopicWarning(false);
     persistLearningState({ understood_sections: next, revealed_checks: revealedChecks, challenge_revealed: challengeRevealed, current_section_index: safeSectionIndex });
   }
   function toggleCheckReveal(index) {
@@ -415,6 +426,11 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
               <span className="lesson-step-complete">Conteúdo revisado</span>
             )}
           </nav>
+          {nextTopicWarning && !understoodSections.includes(safeSectionIndex) && (
+            <div className="notice notice-error lesson-next-topic-warning" role="alert">
+              ⚠️ Marque este tópico como entendido antes de continuar.
+            </div>
+          )}
         </div>
       </>}
       <div className="lesson-session-footer">
