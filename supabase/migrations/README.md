@@ -22,3 +22,8 @@ Migration `20261120121828_simulation_question_pool_versions.sql` adds the A/B/C 
 ## 2026-11-20 — Diagnostic result recovery permissions
 
 Migration `20261120130500_diagnostic_results_read_grants.sql` restores authenticated SELECT access to `assessment_runs` and `question_attempts` (and the required INSERT/UPDATE privileges) for the diagnostic recovery UI. Existing RLS policies continue to restrict records to the authenticated user's own data.
+
+
+## 2026-11-20 — Progresso das aulas por tópico
+
+Migration `20261120230000_topic_lesson_learning_state.sql` adds the `lesson_state` JSONB column to `topic_progress`. It stores understood lesson sections, opened recall references, and challenge visibility for each user/topic. Existing per-user RLS policies remain in place.
