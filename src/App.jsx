@@ -573,7 +573,10 @@ export default function App() {
     };
   }, []);
 
+  const dashboardLoadGenerationRef = useRef(0);
   const resetUserData = useCallback(() => {
+    dashboardLoadGenerationRef.current += 1;
+    setBusy(false); setTutorBusy(false); setEssayBusy(false); setEssayLearningBusy(false); setFlashcardBusy(false); setLessonSessionBusy(false);
     setExam(null); setSubjectRows([]); setProfile(null); setAttempts([]); setSessions([]);
     setTopicLessons([]); setTopicProgressRows([]); setTutorTopicId(""); setTutorMessages([]);
     setTutorDraft(""); setTutorRemaining(null); setTutorError("");
@@ -596,6 +599,7 @@ export default function App() {
   }, []);
 
   const loadDashboard = useCallback(async (currentUser) => {
+    const loadGeneration = ++dashboardLoadGenerationRef.current;
     setBusy(true);
     try {
       const { data: examData, error: examError } = await supabase.from("exams").select("*").eq("slug", EXAM_SLUG).single();
@@ -631,6 +635,9 @@ export default function App() {
         supabase.from("topic_progress").select("topic_id, status, started_at, completed_at, last_studied_at, updated_at")
           .eq("user_id", currentUser.id),
       ]);
+      if (loadGeneration !== dashboardLoadGenerationRef.current) return;
+      const { data: latestSession } = await supabase.auth.getSession();
+      if (latestSession.session?.user?.id !== currentUser.id) return;
       const results = [
         ["diagnóstico aberto", openDiagnosticResult], ["perfil", profileResult], ["disciplinas", subjectsResult],
         ["tentativas", attemptsResult], ["sessões", sessionsResult], ["sessão ativa", activeLessonSessionResult],
@@ -710,7 +717,7 @@ export default function App() {
     } catch (err) {
       setNotice(err.message || "Não foi possível carregar seus dados.");
     } finally {
-      setBusy(false);
+      if (loadGeneration === dashboardLoadGenerationRef.current) setBusy(false);
     }
   }, []);
 
