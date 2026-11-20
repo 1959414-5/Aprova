@@ -2048,16 +2048,26 @@ export default function App() {
                   {subjectRows.map((row) => {
                     const subject = row.subjects || {};
                     const topics = row.topics || [];
+                    const topicProgressPercent = (topic) => {
+                      if (completedTopicIds.has(topic.id)) return 100;
+                      const minutesStudied = sessions.filter((session) => session.topic_id === topic.id)
+                        .reduce((sum, session) => sum + Number(session.duration_minutes || 0), 0);
+                      const referenceMinutes = Math.max(1, Number(topic.estimated_minutes || 60));
+                      return Math.min(99, Math.round(minutesStudied / referenceMinutes * 100));
+                    };
                     const studied = topics.filter((topic) => completedTopicIds.has(topic.id)).length;
+                    const subjectProgress = topics.length
+                      ? Math.round(topics.reduce((sum, topic) => sum + topicProgressPercent(topic), 0) / topics.length)
+                      : 0;
                     const open = expandedSubject === row.id;
                     return (
                       <article className={open ? "subject-card expanded" : "subject-card"} key={row.id}>
                         <button className="subject-card-head" onClick={() => setExpandedSubject(open ? null : row.id)}>
                           <span className="subject-icon">{SUBJECT_ICONS[subject.slug] || "•"}</span>
                           <span className="subject-title-wrap"><strong>{subject.name}</strong><small>{row.question_count} questões · {row.total_points || row.question_count} pontos em 2026</small></span>
-                          <span className="subject-progress-text">{studied}/{topics.length}</span><span className="chevron">{open ? "−" : "+"}</span>
+                          <span className="subject-progress-text">{subjectProgress}%</span><span className="chevron">{open ? "−" : "+"}</span>
                         </button>
-                        <div className="subject-progress-track"><span style={{ width: (topics.length ? studied / topics.length * 100 : 0) + "%" }} /></div>
+                        <div className="subject-progress-track"><span style={{ width: subjectProgress + "%" }} /></div>
                         {open && <div className="topic-list">
                           {topics.map((topic, index) => (
                             <div className="topic-item" key={topic.id}>
@@ -2065,6 +2075,10 @@ export default function App() {
                               <div className="topic-main">
                                 <strong>{topic.title}</strong>
                                 <p>{topic.syllabus_text}</p>
+                                <div className="topic-progress-inline">
+                                  <div className="topic-progress-track"><span style={{ width: topicProgressPercent(topic) + "%" }} /></div>
+                                  <strong>{topicProgressPercent(topic)}%</strong>
+                                </div>
                                 <div className="topic-meta">
                                   <span>{topic.estimated_minutes} min de referência</span>
                                   <span className={"priority priority-" + topic.priority}>{PRIORITY_LABELS[topic.priority] || "Importante"}</span>
