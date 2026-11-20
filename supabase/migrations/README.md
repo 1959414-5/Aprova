@@ -11,4 +11,4 @@ A migração `20261119_lesson_study_sessions_per_lesson.sql` cria `lesson_study_
 
 ## 2026-11-20 — Security hardening
 
-Migration `20261120120000_security_least_privilege_rls_performance.sql` was applied to the connected Supabase project and committed for traceability. It revokes table/sequence privileges from `anon`, removes duplicate `review_items` policies, optimizes RLS predicates for `lesson_study_sessions`, and adds an index for its `topic_id` foreign key. The application requires authenticated accounts; public anonymous database access is not supported.
+Migration `20261120115101_security_least_privilege_rls_performance.sql` was applied to the connected Supabase project and committed for traceability. It revokes table/sequence privileges from `anon`, removes duplicate `review_items` policies, optimizes RLS predicates for `lesson_study_sessions`, and adds an index for its `topic_id` foreign key. The application requires authenticated accounts; public anonymous database access is not supported.
