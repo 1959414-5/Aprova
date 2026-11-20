@@ -2383,7 +2383,7 @@ export default function App() {
             <div className="essay-workspace">
               <div className="panel essay-editor">
                 <div className="panel-heading">
-                  <div><span className="eyebrow">PROPOSTA DE TREINO</span><h2>Escolha um tema</h2></div>
+                  <div><span className="eyebrow">PROPOSTA DE TREINO</span><h2>Tema da rodada</h2></div>
                   <button className="text-button" onClick={newEssayDraft}>Nova redação +</button>
                 </div>
                 <label className="essay-label" htmlFor="essay-prompt">Tema</label>
