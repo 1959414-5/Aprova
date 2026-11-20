@@ -1487,7 +1487,7 @@ export default function App() {
       const { count: completedSimulations, error: countError } = await supabase.from("assessment_runs")
         .select("id", { count: "exact", head: true })
         .eq("user_id", user.id).eq("exam_id", exam.id).eq("run_type", "simulado")
-        .not("finished_at", "is", null);
+        .eq("question_count", 70).not("finished_at", "is", null);
       if (countError) throw countError;
       const simulationVersion = ["A", "B", "C"][Number(completedSimulations || 0) % 3];
 
