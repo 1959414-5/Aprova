@@ -2692,3 +2692,145 @@ textarea { width:100%; }
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Guided lesson navigation: display one learning topic card at a time */
+.lesson-sequence-intro {
+  display: grid;
+  gap: 5px;
+  padding: 4px 2px 2px;
+}
+.lesson-sequence-intro > strong {
+  color: var(--text);
+  font: 800 clamp(16px, 2.5vw, 20px) "Manrope", sans-serif;
+}
+.lesson-sequence-intro > small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+.lesson-learning-map {
+  display: grid;
+  gap: 9px;
+}
+.lesson-article {
+  display: grid;
+  gap: 14px;
+}
+.lesson-learning-card-single {
+  min-width: 0;
+  padding: clamp(16px, 3vw, 24px);
+  border-radius: 18px;
+}
+.lesson-learning-card-single .lesson-learning-card-content {
+  min-width: 0;
+}
+.lesson-learning-card-single .lesson-learning-card-content > p,
+.lesson-learning-card-single .lesson-deep-explanation p,
+.lesson-learning-card-single .lesson-application p,
+.lesson-learning-card-single .lesson-exam-trap p,
+.lesson-learning-card-single .lesson-attention-note p {
+  font-size: 13px;
+  line-height: 1.9;
+}
+.lesson-first-topic-context {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 17px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--surface-2);
+}
+.lesson-first-topic-context > p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.lesson-first-topic-objectives {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.lesson-first-topic-objectives strong {
+  font-size: 11px;
+}
+.lesson-first-topic-objectives ul {
+  margin: 7px 0 0;
+  padding-left: 18px;
+  color: var(--text-soft);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.lesson-final-review-card {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: clamp(15px, 3vw, 22px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-out);
+}
+.lesson-step-navigation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface-2);
+}
+.lesson-step-navigation > button {
+  min-width: 0;
+  white-space: normal;
+}
+.lesson-step-navigation > button:last-child {
+  justify-self: end;
+}
+.lesson-step-position {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+  white-space: nowrap;
+}
+.lesson-step-complete {
+  justify-self: end;
+  color: var(--mint-deep);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: right;
+}
+@media (max-width: 620px) {
+  .lesson-step-navigation {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .lesson-step-position {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .lesson-step-navigation > button:first-child {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .lesson-step-navigation > button:last-child {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: stretch;
+  }
+  .lesson-step-navigation > button {
+    min-height: 42px;
+    padding-inline: 8px;
+    font-size: 11px;
+  }
+  .lesson-step-complete {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .lesson-learning-card-single {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 10px;
+  }
+}
