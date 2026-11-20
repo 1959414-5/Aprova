@@ -2389,7 +2389,6 @@ export default function App() {
                   <div><span className="eyebrow">PROPOSTA DE TREINO</span><h2>Tema da rodada</h2></div>
                   <button className="text-button" onClick={newEssayDraft}>Nova redação +</button>
                 </div>
-                <label className="essay-label" htmlFor="essay-prompt">Tema</label>
                 <div className="essay-prompt-rotation" aria-live="polite"><strong>{currentEssayPrompt.title}</strong><span>Proposta automática · {ESSAY_PROMPTS.findIndex((item) => item.id === currentEssayPrompt.id) + 1} de {ESSAY_PROMPTS.length}</span></div>
                 <div className="essay-prompt-text"><strong>Proposta:</strong> {currentEssayPrompt.prompt}</div>
                 <label className="essay-label" htmlFor="essay-text">Seu texto</label>
