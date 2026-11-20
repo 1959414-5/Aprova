@@ -243,8 +243,8 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
         <button className="icon-button lesson-close" onClick={onClose} title={studyMode ? "Voltar ao resumo do tópico" : "Fechar aula"} aria-label={studyMode ? "Voltar ao resumo do tópico" : "Fechar aula"}>{studyMode ? "↶" : "×"}</button>
       </div>
       <div className="lesson-open-safety-note">
-        <strong>Visualização da aula</strong>
-        <span>Abrir ou fechar esta tela não altera seu progresso. O registro só muda quando você escolhe iniciar ou concluir.</span>
+        <strong>{studyMode ? "Sessão de estudo ativa" : "Visualização da aula"}</strong>
+        <span>{studyMode ? "O cronômetro está ativo. Suas etapas marcadas como entendidas e as referências abertas são salvas automaticamente." : "Abrir ou fechar esta tela não inicia o cronômetro. As marcações de compreensão são salvas automaticamente."}</span>
       </div>
       {!lesson && <div className="notice notice-success">Esta aula ainda está em preparação. O tópico do edital já está cadastrado.</div>}
       {lesson && <>
@@ -994,6 +994,8 @@ export default function App() {
     const finishedAt = new Date().toISOString();
     const durationMinutes = Math.max(1, Math.round(seconds / 60));
     try {
+      const pendingLearningSave = topicLearningSaveQueueRef.current.get(currentSession.topicId);
+      if (pendingLearningSave) await pendingLearningSave;
       const { error: exactSessionError } = await supabase.from("lesson_study_sessions").update({
         status: "salva",
         ended_at: finishedAt,
@@ -1311,6 +1313,8 @@ export default function App() {
 
   async function markTopicCompleted(topic) {
     if (!user) return;
+    const pendingLearningSave = topicLearningSaveQueueRef.current.get(topic.id);
+    if (pendingLearningSave) await pendingLearningSave;
     const existing = topicProgressById.get(topic.id);
     if (existing?.status !== "em_andamento") return;
     const now = new Date().toISOString();
@@ -1893,7 +1897,7 @@ export default function App() {
         <div className="sidebar-label">ÁREA DE ESTUDOS</div>
         <nav className="side-nav">
           {NAV_ITEMS.filter((item) => item.id !== "tutor").map((item) => (
-            <button key={item.id} title={sidebarCollapsed ? item.label : undefined} aria-label={item.label} className={view === item.id || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? (view === "diagnostic" && quizRunId ? requestAssessmentExit("diagnostic") : setView("diagnostic")) : requestAssessmentExit(item.id)}>
+            <button key={item.id} title={sidebarCollapsed ? item.label : undefined} aria-label={item.label} className={view === item.id || (view === "topic-session" && item.id === "study") || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? (view === "diagnostic" && quizRunId ? requestAssessmentExit("diagnostic") : setView("diagnostic")) : requestAssessmentExit(item.id)}>
               <span className="nav-icon"><NavIcon name={item.id} /></span><span className="nav-label">{item.label}</span>
             </button>
           ))}
