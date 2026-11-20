@@ -73,7 +73,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
           max_score: null,
           correct_count: 0,
           question_count: 0,
-          metadata: { origin: run.run_type === "simulado" ? "banco_autoral_ia" : "banco_autoral_inicial", abandoned: true, partial: true },
+          metadata: { ...(run.metadata ?? {}), origin: run.run_type === "simulado" ? "banco_autoral_ia" : "banco_autoral_inicial", abandoned: true, partial: true },
         })
         .eq("id", runId)
         .eq("user_id", userId)
@@ -162,6 +162,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
     const elapsed = Math.max(0, Math.round((Date.now() - new Date(run.started_at).getTime()) / 1000));
     const finishedAt = new Date().toISOString();
     const resultMetadata = {
+      ...(run.metadata ?? {}),
       origin: run.run_type === "simulado" ? "banco_autoral_ia" : "banco_autoral_inicial",
       partial: !isComplete,
       raw_points: rawPoints,
