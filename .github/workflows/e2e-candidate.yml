@@ -2,6 +2,14 @@ name: E2E - Sessão real do candidato
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "tests/e2e/candidate-journey.spec.js"
+      - "playwright.config.js"
+      - ".github/workflows/e2e-candidate.yml"
+      - "package.json"
 
 permissions:
   contents: read
