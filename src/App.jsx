@@ -1489,15 +1489,20 @@ export default function App() {
         .eq("user_id", user.id).eq("exam_id", exam.id).eq("run_type", "simulado")
         .eq("question_count", 70).not("finished_at", "is", null);
       if (countError) throw countError;
-      const simulationVersion = ["A", "B", "C"][Number(completedSimulations || 0) % 3];
 
-      const { data: bank, error: bankError } = await supabase.from("questions")
+      const { data: questionBank, error: bankError } = await supabase.from("questions")
         .select("id, exam_subject_id, topic_id, statement, options, difficulty, points, origin, simulation_version")
-        .eq("exam_id", exam.id).eq("is_published", true).eq("simulation_version", simulationVersion);
+        .eq("exam_id", exam.id).eq("is_published", true);
       if (bankError) throw bankError;
-      if (!bank || bank.length !== 70) {
-        throw new Error(`A versão ${simulationVersion} do simulado ainda não possui 70 questões publicadas e revisadas. A rotação automática será liberada quando o banco estiver completo.`);
-      }
+      const availableVersions = ["A", "B", "C"].filter((version) =>
+        (questionBank || []).filter((question) => question.simulation_version === version).length === 70
+      );
+      if (!availableVersions.length) throw new Error("Nenhuma versão completa de 70 questões está disponível.");
+      const preferredVersion = ["A", "B", "C"][Number(completedSimulations || 0) % 3];
+      const simulationVersion = availableVersions.includes(preferredVersion)
+        ? preferredVersion
+        : availableVersions[Number(completedSimulations || 0) % availableVersions.length];
+      const bank = (questionBank || []).filter((question) => question.simulation_version === simulationVersion);
 
       const selected = subjectRows.flatMap((row) => {
         const count = row.subjects?.slug === "conhecimentos-especificos" ? 30 : 10;
