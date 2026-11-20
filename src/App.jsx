@@ -715,7 +715,9 @@ export default function App() {
       setFlashcards(flashcardData || []);
       setFlashcardReviews(flashcardReviewData || []);
     } catch (err) {
-      setNotice(err.message || "Não foi possível carregar seus dados.");
+      if (loadGeneration === dashboardLoadGenerationRef.current) {
+        setNotice(err.message || "Não foi possível carregar seus dados.");
+      }
     } finally {
       if (loadGeneration === dashboardLoadGenerationRef.current) setBusy(false);
     }
