@@ -1484,12 +1484,19 @@ export default function App() {
     setQuizResult(null);
     setQuizMode("simulado");
     try {
+      const { count: completedSimulations, error: countError } = await supabase.from("assessment_runs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id).eq("exam_id", exam.id).eq("run_type", "simulado")
+        .not("finished_at", "is", null);
+      if (countError) throw countError;
+      const simulationVersion = ["A", "B", "C"][Number(completedSimulations || 0) % 3];
+
       const { data: bank, error: bankError } = await supabase.from("questions")
-        .select("id, exam_subject_id, topic_id, statement, options, difficulty, points, origin")
-        .eq("exam_id", exam.id).eq("is_published", true);
+        .select("id, exam_subject_id, topic_id, statement, options, difficulty, points, origin, simulation_version")
+        .eq("exam_id", exam.id).eq("is_published", true).eq("simulation_version", simulationVersion);
       if (bankError) throw bankError;
       if (!bank || bank.length !== 70) {
-        throw new Error("O simulado completo exige exatamente 70 questões publicadas. O banco ainda não está completo.");
+        throw new Error(`A versão ${simulationVersion} do simulado ainda não possui 70 questões publicadas e revisadas. A rotação automática será liberada quando o banco estiver completo.`);
       }
 
       const selected = subjectRows.flatMap((row) => {
@@ -1504,10 +1511,11 @@ export default function App() {
         user_id: user.id,
         exam_id: exam.id,
         run_type: "simulado",
-        title: "Simulado completo — 70 questões",
+        title: `Simulado completo — versão ${simulationVersion} · 70 questões`,
         question_count: 70,
         metadata: {
           origin: "banco_autoral_ia",
+          simulation_version: simulationVersion,
           question_distribution: {
             "lingua-portuguesa": 10,
             "matematica-raciocinio-logico": 10,
