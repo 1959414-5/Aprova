@@ -364,6 +364,12 @@ const ESSAY_PROMPTS = [
   { id: "etica-transparencia", title: "Ética, transparência e confiança nas instituições", prompt: "Redija um texto dissertativo-argumentativo sobre a relação entre ética, transparência e confiança nas instituições, considerando integridade, prestação de contas e interesse coletivo." },
   { id: "desinformacao", title: "Desinformação e responsabilidade no uso das informações", prompt: "Redija um texto dissertativo-argumentativo sobre os desafios da desinformação na sociedade, considerando educação midiática, responsabilidade individual e qualidade do debate público." },
   { id: "seguranca-coletiva", title: "Prevenção de riscos e segurança em espaços de uso coletivo", prompt: "Redija um texto dissertativo-argumentativo sobre a importância da prevenção de riscos e da segurança em espaços de uso coletivo, considerando planejamento, comunicação e responsabilidade." },
+  { id: "mobilidade-urbana", title: "Mobilidade urbana e qualidade de vida", prompt: "Redija um texto dissertativo-argumentativo sobre os desafios da mobilidade urbana e seus impactos na qualidade de vida, considerando planejamento, acessibilidade e sustentabilidade." },
+  { id: "educacao-digital", title: "Educação digital e cidadania", prompt: "Redija um texto dissertativo-argumentativo sobre a importância da educação digital para o exercício da cidadania, considerando acesso à informação, segurança e uso crítico da tecnologia." },
+  { id: "servicos-essenciais", title: "Acesso a serviços essenciais e desigualdade", prompt: "Redija um texto dissertativo-argumentativo sobre os desafios para ampliar o acesso da população a serviços essenciais, considerando desigualdades, planejamento e responsabilidade do poder público." },
+  { id: "gestao-recursos", title: "Uso eficiente de recursos nas organizações", prompt: "Redija um texto dissertativo-argumentativo sobre a importância do uso eficiente de recursos nas organizações, considerando planejamento, transparência e redução de desperdícios." },
+  { id: "convivencia-trabalho", title: "Comunicação e convivência no ambiente de trabalho", prompt: "Redija um texto dissertativo-argumentativo sobre o papel da comunicação e da cooperação para um ambiente de trabalho saudável e eficiente, considerando respeito, responsabilidade e prevenção de conflitos." },
+  { id: "informacao-publica", title: "Transparência e acesso à informação", prompt: "Redija um texto dissertativo-argumentativo sobre a importância da transparência e do acesso à informação para a confiança social, considerando clareza, responsabilidade e proteção de dados." },
 ];
 
 export default function App() {
@@ -1230,9 +1236,11 @@ export default function App() {
   }
 
   function newEssayDraft() {
+    const completedEssayCount = essaySubmissions.filter((item) => item.status === "corrigida").length;
+    const nextPrompt = ESSAY_PROMPTS[completedEssayCount % ESSAY_PROMPTS.length];
     setEssayId(null);
     setEssayStatus("rascunho");
-    setEssayPromptId("transporte-regional");
+    setEssayPromptId(nextPrompt.id);
     setEssayText("");
     setEssayEvaluation(null);
     setEssayNotice("");
@@ -2366,9 +2374,7 @@ export default function App() {
                   <button className="text-button" onClick={newEssayDraft}>Nova redação +</button>
                 </div>
                 <label className="essay-label" htmlFor="essay-prompt">Tema</label>
-                <select id="essay-prompt" className="tutor-topic-select" value={essayPromptId} disabled={essayStatus === "corrigida" && Boolean(essayId)} onChange={(event) => { setEssayPromptId(event.target.value); setEssayId(null); setEssayStatus("rascunho"); setEssayEvaluation(null); }}>
-                  {ESSAY_PROMPTS.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
-                </select>
+                <div className="essay-prompt-rotation" aria-live="polite"><strong>{currentEssayPrompt.title}</strong><span>Proposta automática · {ESSAY_PROMPTS.findIndex((item) => item.id === currentEssayPrompt.id) + 1} de {ESSAY_PROMPTS.length}</span></div>
                 <div className="essay-prompt-text"><strong>Proposta:</strong> {currentEssayPrompt.prompt}</div>
                 <label className="essay-label" htmlFor="essay-text">Seu texto</label>
                 <textarea id="essay-text" className="essay-textarea" value={essayText} readOnly={essayStatus === "corrigida" && Boolean(essayId)} onChange={(event) => { setEssayText(event.target.value); setEssayEvaluation(null); }} placeholder="Escreva a introdução, desenvolva seus argumentos e conclua..." rows={18} maxLength={12000}/>
