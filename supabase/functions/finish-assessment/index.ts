@@ -1,25 +1,34 @@
 import { withSupabase } from "npm:@supabase/server";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_ORIGINS = new Set([
+  "https://1959414-5.github.io",
+  "http://localhost:5173",
+]);
+
+function corsHeadersFor(req: Request): HeadersInit {
+  const origin = req.headers.get("origin") ?? "";
+  return {
+    ...(ALLOWED_ORIGINS.has(origin) ? { "Access-Control-Allow-Origin": origin } : {}),
+    "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
 
 const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (req.method !== "POST") {
-    return Response.json({ error: "Método não permitido." }, { status: 405, headers: corsHeaders });
+    return Response.json({ error: "Método não permitido." }, { status: 405, headers: corsHeadersFor(req) });
   }
 
   try {
     const userId = ctx.userClaims?.id;
-    if (!userId) return Response.json({ error: "Sessão não identificada." }, { status: 401, headers: corsHeaders });
+    if (!userId) return Response.json({ error: "Sessão não identificada." }, { status: 401, headers: corsHeadersFor(req) });
 
     const body = await req.json();
     const runId = String(body.assessment_run_id ?? "");
     const allowPartial = body.allow_partial === true;
     if (!/^[0-9a-f-]{36}$/i.test(runId)) {
-      return Response.json({ error: "Identificador de avaliação inválido." }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: "Identificador de avaliação inválido." }, { status: 400, headers: corsHeadersFor(req) });
     }
 
     const { data: run, error: runError } = await ctx.supabaseAdmin
@@ -29,8 +38,8 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .eq("user_id", userId)
       .maybeSingle();
 
-    if (runError || !run) return Response.json({ error: "Avaliação não encontrada." }, { status: 404, headers: corsHeaders });
-    if (run.finished_at) return Response.json({ error: "Esta avaliação já foi finalizada." }, { status: 409, headers: corsHeaders });
+    if (runError || !run) return Response.json({ error: "Avaliação não encontrada." }, { status: 404, headers: corsHeadersFor(req) });
+    if (run.finished_at) return Response.json({ error: "Esta avaliação já foi finalizada." }, { status: 409, headers: corsHeadersFor(req) });
 
     const { data: attempts, error: attemptsError } = await ctx.supabaseAdmin
       .from("question_attempts")
@@ -41,7 +50,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
 
     if (attemptsError) {
       console.error("Falha ao consultar respostas da avaliação:", attemptsError.message);
-      return Response.json({ error: "Não foi possível apurar as respostas." }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: "Não foi possível apurar as respostas." }, { status: 500, headers: corsHeadersFor(req) });
     }
 
     const responseRows = attempts ?? [];
@@ -58,7 +67,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       ) {
         return Response.json({
           error: "A sequência salva deste diagnóstico está incompleta ou inconsistente. A tentativa foi preservada para análise.",
-        }, { status: 409, headers: corsHeaders });
+        }, { status: 409, headers: corsHeadersFor(req) });
       }
     }
 
@@ -79,19 +88,19 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         .eq("user_id", userId)
         .is("finished_at", null);
       if (abandonError) {
-        return Response.json({ error: "Não foi possível descartar esta avaliação vazia." }, { status: 500, headers: corsHeaders });
+        return Response.json({ error: "Não foi possível descartar esta avaliação vazia." }, { status: 500, headers: corsHeadersFor(req) });
       }
-      return Response.json({ finished: true, abandoned: true, total: 0 }, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return Response.json({ finished: true, abandoned: true, total: 0 }, { headers: { ...corsHeadersFor(req), "Content-Type": "application/json" } });
     }
     if (!isComplete && !allowPartial) {
       return Response.json({
         error: `Ainda faltam respostas: ${responseRows.length} de ${expected}.`,
         answered: responseRows.length,
         expected,
-      }, { status: 409, headers: corsHeaders });
+      }, { status: 409, headers: corsHeadersFor(req) });
     }
     if (responseRows.length === 0) {
-      return Response.json({ error: "Nenhuma resposta foi registrada nesta avaliação." }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: "Nenhuma resposta foi registrada nesta avaliação." }, { status: 400, headers: corsHeadersFor(req) });
     }
 
     const questionIds = responseRows.map((row) => row.question_id);
@@ -102,7 +111,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .in("id", questionIds);
 
     if (questionsError || !questions || questions.length !== responseRows.length) {
-      return Response.json({ error: "Não foi possível conferir todas as questões desta avaliação." }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: "Não foi possível conferir todas as questões desta avaliação." }, { status: 500, headers: corsHeadersFor(req) });
     }
 
     const questionById = new Map(questions.map((question) => [question.id, question]));
@@ -112,7 +121,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .select("id, subject_id, subjects(slug, name)")
       .in("id", subjectIds);
     if (subjectError) {
-      return Response.json({ error: "Não foi possível montar o resultado por disciplina." }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: "Não foi possível montar o resultado por disciplina." }, { status: 500, headers: corsHeadersFor(req) });
     }
 
     const subjectMap = new Map((examSubjects ?? []).map((row: any) => [row.id, row.subjects]));
@@ -187,7 +196,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
 
     if (updateError) {
       console.error("Falha ao finalizar avaliação:", updateError.message);
-      return Response.json({ error: "Não foi possível finalizar a avaliação." }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: "Não foi possível finalizar a avaliação." }, { status: 500, headers: corsHeadersFor(req) });
     }
 
     return Response.json({
@@ -205,14 +214,14 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         percentage: row.max_points ? Number(((row.raw_points / row.max_points) * 100).toFixed(1)) : 0,
       })),
       review,
-    }, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }, { headers: { ...corsHeadersFor(req), "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Falha em finish-assessment:", error);
-    return Response.json({ error: "Não foi possível apurar o resultado da avaliação." }, { status: 400, headers: corsHeaders });
+    return Response.json({ error: "Não foi possível apurar o resultado da avaliação." }, { status: 400, headers: corsHeadersFor(req) });
   }
 });
 
 Deno.serve((req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeadersFor(req) });
   return handler(req);
 });
