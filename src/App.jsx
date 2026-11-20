@@ -822,6 +822,12 @@ export default function App() {
   const daysLeft = daysUntilExam();
   const currentQuestion = quizQuestions[quizIndex];
 
+  function closeTopicLesson() {
+    // Evita que o efeito de restauração reabra uma aula que o candidato fechou.
+    try { localStorage.removeItem("aprova-selected-topic"); } catch { /* storage unavailable */ }
+    setSelectedTopic(null);
+  }
+
   function openLesson(topic) {
     if (activeSession && !(activeSession.kind === "topico" && activeSession.topicId === topic.id)) {
       setNotice("Finalize ou cancele a sessão atual antes de abrir outra aula.");
@@ -2022,7 +2028,7 @@ export default function App() {
           <section className={selectedTopic ? "content-section study-session-page" : "content-section"}>
             {selectedTopic ? (
               <>
-                <button className="back-button lesson-back-button" onClick={() => setSelectedTopic(null)}>← Voltar à lista de aulas</button>
+                <button className="back-button lesson-back-button" onClick={closeTopicLesson}>← Voltar à lista de aulas</button>
                 <TopicLessonPanel
                   key={selectedTopic.id}
                   topic={selectedTopic}
@@ -2037,7 +2043,7 @@ export default function App() {
                   onMarkComplete={() => markTopicCompleted(selectedTopic)}
                   onCancel={cancelTopicSession}
                   onAskTutor={() => { setTutorTopicId(selectedTopic.id); setView("tutor"); }}
-                  onClose={() => setSelectedTopic(null)}
+                  onClose={closeTopicLesson}
                 />
               </>
             ) : (
