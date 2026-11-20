@@ -454,6 +454,7 @@ export default function App() {
   const [questionStartedAt, setQuestionStartedAt] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
   const [pendingDiagnosticResume, setPendingDiagnosticResume] = useState(null);
+  const [completedDiagnosticResult, setCompletedDiagnosticResult] = useState(null);
   const user = session?.user ?? null;
 
   useEffect(() => { try { localStorage.setItem("aprova-current-view", view); } catch { /* storage unavailable */ } }, [view]);
@@ -595,7 +596,7 @@ export default function App() {
     setExpandedSubject(null); setSelectedTopic(null); setActiveSession(null); setElapsedSeconds(0);
     setQuizQuestions([]); setQuizRunId(null); setQuizElapsedSeconds(0); setQuizIndex(0);
     setSelectedOption(""); setFeedback(null); setResponses([]); setQuizStartedAt(null);
-    setQuestionStartedAt(null); setQuizResult(null); setPendingDiagnosticResume(null);
+    setQuestionStartedAt(null); setQuizResult(null); setPendingDiagnosticResume(null); setCompletedDiagnosticResult(null);
     setAssessmentConfirmAction(null); setAssessmentExitTarget("dashboard");
     setProfileMenuOpen(false); setNotice(""); setView("dashboard");
     try {
@@ -641,13 +642,16 @@ export default function App() {
 
       // Fetch independent user/exam datasets concurrently to reduce total round-trips.
       const [
-        openDiagnosticResult, profileResult, subjectsResult, attemptsResult,
+        openDiagnosticResult, completedDiagnosticResultQuery, profileResult, subjectsResult, attemptsResult,
         sessionsResult, activeLessonSessionResult, essayResult, essayLearningResult,
         flashcardsResult, flashcardReviewsResult, lessonsResult, progressResult,
       ] = await Promise.all([
         supabase.from("assessment_runs").select("id, started_at, question_count")
           .eq("user_id", currentUser.id).eq("exam_id", examData.id).eq("run_type", "diagnostico")
           .is("finished_at", null).order("started_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("assessment_runs").select("id, started_at, finished_at, duration_seconds, score, correct_count, question_count, metadata")
+          .eq("user_id", currentUser.id).eq("exam_id", examData.id).eq("run_type", "diagnostico")
+          .not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("study_profiles").select("*")
           .eq("user_id", currentUser.id).maybeSingle(),
         supabase.from("exam_subjects").select("id, display_order, question_count, total_points, points_per_question, subjects(id, slug, name), topics(id, slug, title, syllabus_text, priority, estimated_minutes, display_order)")
@@ -673,7 +677,7 @@ export default function App() {
       const { data: latestSession } = await supabase.auth.getSession();
       if (latestSession.session?.user?.id !== currentUser.id) return;
       const results = [
-        ["diagnóstico aberto", openDiagnosticResult], ["perfil", profileResult], ["disciplinas", subjectsResult],
+        ["diagnóstico aberto", openDiagnosticResult], ["diagnóstico concluído", completedDiagnosticResultQuery], ["perfil", profileResult], ["disciplinas", subjectsResult],
         ["tentativas", attemptsResult], ["sessões", sessionsResult], ["sessão ativa", activeLessonSessionResult],
         ["redações", essayResult], ["progresso de redação", essayLearningResult], ["flashcards", flashcardsResult],
         ["revisões", flashcardReviewsResult], ["aulas", lessonsResult], ["progresso dos tópicos", progressResult],
@@ -692,6 +696,7 @@ export default function App() {
       const lessonsData = lessonsResult.data;
       const progressData = progressResult.data;
       setPendingDiagnosticResume(openDiagnosticData || null);
+      setCompletedDiagnosticResult(completedDiagnosticResultQuery.data || null);
 
       let activeProfile = profileData;
       if (!activeProfile) {
@@ -1478,6 +1483,26 @@ export default function App() {
     }
   }
 
+  function showCompletedDiagnostic() {
+    if (!completedDiagnosticResult) return;
+    const metadata = completedDiagnosticResult.metadata || {};
+    const subjects = (metadata.subject_breakdown || []).map((subject) => ({
+      ...subject,
+      percentage: subject.max_points ? Number(((Number(subject.raw_points || 0) / Number(subject.max_points)) * 100).toFixed(1)) : 0,
+    }));
+    setQuizMode("diagnostico");
+    setQuizResult({
+      mode: "diagnostico",
+      score: Number(completedDiagnosticResult.score || 0),
+      correct: Number(completedDiagnosticResult.correct_count || 0),
+      total: Number(completedDiagnosticResult.question_count || 0),
+      minutes: Math.max(1, Math.round(Number(completedDiagnosticResult.duration_seconds || 0) / 60)),
+      subjects,
+      saved: true,
+    });
+    setView("results");
+  }
+
   function startDiagnostic() {
     if (view === "diagnostic" && quizRunId) {
       setNotice("O diagnóstico já está em andamento. Continue de onde parou.");
@@ -1970,7 +1995,7 @@ export default function App() {
           <section className="content-section">
             <div className="welcome-row">
               <div><span className="eyebrow">BEM-VINDO À SUA PREPARAÇÃO</span><h1>Um passo de cada vez.</h1><p className="muted">O plano se adapta aos dias corridos e aos períodos com mais disponibilidade.</p></div>
-              <button className="button button-primary" onClick={startDiagnostic} disabled={busy}>{pendingDiagnosticResume ? "Retomar diagnóstico" : "Fazer diagnóstico inicial"} <span>→</span></button>
+              <button className="button button-primary" onClick={pendingDiagnosticResume ? startDiagnostic : completedDiagnosticResult ? showCompletedDiagnostic : startDiagnostic} disabled={busy}>{pendingDiagnosticResume ? "Retomar diagnóstico" : completedDiagnosticResult ? "Ver resultado salvo" : "Fazer diagnóstico inicial"} <span>→</span></button>
             </div>
             <div className="countdown-banner">
               <div className="countdown-icon">◷</div>
@@ -2017,7 +2042,7 @@ export default function App() {
                   </div>
                 )}
                 <div className="plan-tip"><span>✦</span><p><strong>Meta flexível, não limite obrigatório.</strong><br />Quando o tempo terminar, o sistema avisa e continua contando o excedente até você salvar ou cancelar a sessão.</p></div>
-                <button className="button button-primary button-wide" onClick={startDiagnostic}>{pendingDiagnosticResume ? "Retomar diagnóstico" : "Começar pelo diagnóstico"}</button>
+                <button className="button button-primary button-wide" onClick={pendingDiagnosticResume ? startDiagnostic : completedDiagnosticResult ? showCompletedDiagnostic : startDiagnostic}>{pendingDiagnosticResume ? "Retomar diagnóstico" : completedDiagnosticResult ? "Ver resultado salvo" : "Começar pelo diagnóstico"}</button>
                 <button className="button button-secondary button-wide" onClick={() => setView("simulations")}>Ver simulados completos →</button>
               </div>
             </div>
