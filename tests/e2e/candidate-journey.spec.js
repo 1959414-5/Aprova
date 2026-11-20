@@ -178,10 +178,12 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
     expect(versionsRun).toEqual(SIMULATION_CYCLE.map((_, index) =>
       SIMULATION_CYCLE[((initialCompletedCount || 0) + index) % 3]
     ));
+    console.log("E2E: rotação A-B-C validada.");
 
     await page.locator(".side-nav").getByRole("button", { name: "Redação" }).click();
-    await page.getByRole("button", { name: "Escrever", exact: true }).click();
+    await page.locator(".essay-learning-tabs").getByRole("button", { name: /Escrever/ }).click();
     await expect(page.getByRole("heading", { name: "Tema da rodada" })).toBeVisible();
+    console.log("E2E: editor de redação aberto.");
     await expect(page.locator(".essay-prompt-rotation")).toContainText(/Proposta automática · \d+ de 12/);
 
     const draftText = "RASCUNHO DE TESTE APROVA E2E - NAO CONSIDERAR COMO REDACAO REAL";
@@ -200,11 +202,12 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
     expect(savedDraft?.text_content).toBe(draftText);
     expect(savedDraft?.status).toBe("rascunho");
     expect(savedDraft?.line_count).toBe(1);
+    console.log("E2E: rascunho salvo no banco.");
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.locator(".side-nav").getByRole("button", { name: "Redação" })).toBeVisible({ timeout: 90000 });
     await page.locator(".side-nav").getByRole("button", { name: "Redação" }).click();
-    await page.getByRole("button", { name: "Escrever", exact: true }).click();
+    await page.locator(".essay-learning-tabs").getByRole("button", { name: /Escrever/ }).click();
     const latestDraftInHistory = page.locator(".essay-history-item").first();
     await expect(latestDraftInHistory).toBeVisible({ timeout: 60000 });
     await latestDraftInHistory.click();
