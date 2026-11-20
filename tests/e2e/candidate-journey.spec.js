@@ -28,6 +28,11 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
   }
 
   const supabase = makeSupabaseClient();
+  const browserErrors = [];
+  page.on("pageerror", (error) => browserErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") browserErrors.push(message.text());
+  });
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
   if (authError) throw new Error("A autenticação da conta de teste no Supabase falhou: " + authError.message);
   const userId = authData.user.id;
@@ -63,9 +68,48 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
     for (let runIndex = 0; runIndex < 3; runIndex += 1) {
       const expectedVersion = SIMULATION_CYCLE[((initialCompletedCount || 0) + runIndex) % 3];
       await simulationsNav.click();
-      await page.getByRole("button", { name: /Iniciar simulado completo/ }).click();
 
-      await expect(page.locator(".quiz-card h1")).toBeVisible({ timeout: 90000 });
+      // O menu é exibido antes de loadDashboard terminar. Só iniciar depois de
+      // confirmar que o concurso e as cinco disciplinas foram carregados.
+      await expect(page.locator(".simulation-distribution .simulation-subject-row"))
+        .toHaveCount(5, { timeout: 90000 });
+      const startButton = page.locator(".simulation-hero")
+        .getByRole("button", { name: /Iniciar simulado completo/ });
+      await expect(startButton).toBeEnabled({ timeout: 90000 });
+      await startButton.click();
+
+      // Espera o registro persistido, ou retorna imediatamente o aviso da tela
+      // em vez de ficar aguardando cegamente pelo seletor da questão.
+      let startOutcome = "pending";
+      await expect.poll(async () => {
+        const { data, error } = await supabase.from("assessment_runs")
+          .select("id, question_count, finished_at, started_at")
+          .eq("user_id", userId)
+          .eq("exam_id", exam.id)
+          .eq("run_type", "simulado")
+          .is("finished_at", null)
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) throw error;
+        if (data) {
+          startOutcome = "created";
+          return startOutcome;
+        }
+        const notice = await page.locator(".global-notice").textContent().catch(() => "");
+        if (notice?.trim()) {
+          startOutcome = "notice: " + notice.trim();
+          return startOutcome;
+        }
+        return "pending";
+      }, { timeout: 60000, intervals: [500, 1000, 2000] }).not.toBe("pending");
+
+      if (startOutcome !== "created") {
+        throw new Error("Não foi possível iniciar o simulado: " + startOutcome
+          + (browserErrors.length ? " | Erros do navegador: " + browserErrors.join(" || ") : ""));
+      }
+
+      await expect(page.locator(".quiz-card h1")).toBeVisible({ timeout: 45000 });
       await expect(page.locator(".quiz-timer-strip")).toContainText("70 QUESTÕES");
 
       const { data: activeRun, error: activeRunError } = await supabase
@@ -167,6 +211,7 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
     console.log("E2E concluído. Versões verificadas:", versionsRun.join(" -> "));
     console.log("Simulados completos adicionados ao histórico:", versionsRun.length);
     console.log("Rascunho de teste salvo e recuperado do histórico.");
+    if (browserErrors.length) console.log("Avisos/erros do navegador observados:", browserErrors.join(" || "));
   } finally {
     await supabase.auth.signOut();
   }
