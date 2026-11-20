@@ -7,14 +7,14 @@
 - 45 aulas autorais com explicações, exemplos, resumos, erros comuns e prática.
 - Progresso de tópico separado do tempo de estudo; sessões cronometradas só são salvas ao finalizar.
 - Diagnóstico inicial com 22 questões proporcionais; sequência persistida no registro da tentativa e retomada autenticada após atualizar/reabrir o navegador.
-- Simulado de 70 questões, distribuição oficial e nota ponderada server-side.
+- Simulados de 70 questões em três bancos rotativos (A/B/C), distribuição de 10/10/10/10/30 e nota ponderada server-side. A rotação é individual e avança após cada tentativa completa.
 - Gabarito oculto durante simulado.
 - Professor IA contextualizado pela aula; Edge Function autenticada `study-tutor`.
 - Curso de Redação: seis aulas autorais em quatro etapas (Aprender, Praticar, Analisar e Escrever), com exercícios objetivos e explicação, texto-modelo comentado e rubrica do edital.
 - `assessment_runs`: tentativas diagnósticas com uma sessão ativa por usuário/concurso, sequência de questões em `metadata.question_ids` e retomada autenticada por `diagnostic-session`.
 - `essay_learning_progress`: progresso individual por aula (`nao_iniciada`, `em_andamento`, `concluida`), respostas de exercícios e datas de início/conclusão, com RLS.
 - Abertura/visualização não altera progresso; iniciar exige confirmação; conclusão também exige confirmação. Cada sessão é vinculada ao tópico ou à aula de redação e registra início, término e duração em segundos. Sessões salvas não concluem automaticamente o conteúdo; é possível retomar a aula.
-- Laboratório de Redação preservado: temas, salvamento de rascunho, contador de 20–30 linhas e correção formativa por quatro critérios, via `essay-feedback`.
+- Laboratório de Redação: 12 propostas autorais com rotação automática após cada redação corrigida, salvamento de rascunho, contador de 20–30 linhas e correção formativa por quatro critérios, via `essay-feedback`.
 - Revisões e flashcards: 45 cartões iniciais e agendamento de 1, 2, 4, 7 e 15 dias.
 
 - O curso trabalha o gênero dissertativo-argumentativo sobre questões da atualidade e explicita os limites de 20–30 linhas e os quatro critérios de 25 pontos do edital. Conteúdo e questões de aula são autorais/didáticos, não provas oficiais.
@@ -22,7 +22,7 @@
 ## Banco remoto
 - Supabase project ref: `ehsrjjflwrmmegfvupch`.
 - 45 aulas publicadas.
-- 70 questões autorais: 10/10/10/10/30. Todas com `is_verified=false`.
+- 210 questões autorais distribuídas em três versões completas (A/B/C), cada uma com 10/10/10/10/30. Todas com `is_verified=false`; a revisão humana continua recomendada antes de tratar o banco como validado por especialista.
 - 45 flashcards publicados, um por tópico.
 - `ai_tutor_usage` separa consumo do tutor e correção de redação.
 - `essay_submissions` possui proteção para usuário editar apenas rascunhos; pontuações são atualizadas pelo servidor.
