@@ -22,7 +22,7 @@ Requisitos trabalhados na plataforma:
 Cada aula contém explicação, exemplos comentados e um exercício de múltipla escolha com feedback explicativo. O curso também contém:
 - **Praticar:** seis exercícios reunidos em uma visão de revisão.
 - **Analisar:** texto didático autoral parágrafo a parágrafo e apresentação dos quatro critérios.
-- **Escrever:** laboratório já existente, com seis propostas autorais, rascunhos, contador de linhas e correção formativa por IA.
+- **Escrever:** laboratório já existente, com doze propostas autorais, rascunhos, contador de linhas e correção formativa por IA.
 
 ## Persistência e segurança
 
