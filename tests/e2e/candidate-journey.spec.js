@@ -50,7 +50,7 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("exam_id", exam.id)
-      .eq("run_type", "simulado")
+      .eq("run_type", "simulado_completo")
       .eq("question_count", 70)
       .not("finished_at", "is", null);
     if (countError) throw new Error("Não foi possível consultar o histórico de simulados: " + countError.message);
@@ -87,7 +87,7 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
           .select("id, question_count, finished_at, started_at")
           .eq("user_id", userId)
           .eq("exam_id", exam.id)
-          .eq("run_type", "simulado")
+          .eq("run_type", "simulado_completo")
           .is("finished_at", null)
           .gte("started_at", runStartedAfter)
           .order("started_at", { ascending: false })
@@ -119,7 +119,7 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
         .select("id, question_count, finished_at, started_at")
         .eq("user_id", userId)
         .eq("exam_id", exam.id)
-        .eq("run_type", "simulado")
+        .eq("run_type", "simulado_completo")
         .is("finished_at", null)
         .order("started_at", { ascending: false })
         .limit(1)
