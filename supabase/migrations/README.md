@@ -16,4 +16,4 @@ Migration `20261120115101_security_least_privilege_rls_performance.sql` was appl
 
 ## 2026-11-20 — Simulation pools
 
-Migration `20261120140000_simulation_question_pool_versions.sql` adds the A/B/C label and an index for published simulation pools. Migration `20261120150000_require_explicit_simulation_version_and_read.sql` removes the implicit default so new questions must declare their pool, and grants authenticated clients read access only to the version label. The database contains three full 70-question sets; the application rotates per user after completed full simulations.
+Migration `20261120121828_simulation_question_pool_versions.sql` adds the A/B/C label and an index for published simulation pools. Migration `20261120123106_require_explicit_simulation_version_and_read.sql` removes the implicit default so new questions must declare their pool, and grants authenticated clients read access only to the version label. The database contains three full 70-question sets; the application rotates per user after completed full simulations.
