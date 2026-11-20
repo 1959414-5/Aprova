@@ -2549,3 +2549,50 @@ textarea { width:100%; }
 .topic-session-status-strip strong {
   color: var(--accent);
 }
+
+/* Dedicated lesson view: visually separate the topic overview from the active lesson */
+.lesson-study-mode {
+  overflow: hidden;
+  border-width: 1px;
+}
+.lesson-study-mode .lesson-panel-head {
+  padding: clamp(18px, 3vw, 28px);
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(135deg, var(--surface-2), var(--surface-1));
+}
+.lesson-study-mode .lesson-panel-head h2 {
+  margin-bottom: 5px;
+  font-size: clamp(24px, 4vw, 34px);
+}
+.lesson-study-topic-title {
+  margin: 0 0 12px;
+  font-size: clamp(18px, 3vw, 24px);
+  color: var(--accent);
+}
+.lesson-study-mode .lesson-open-safety-note {
+  margin: 16px clamp(14px, 2.5vw, 24px);
+}
+.lesson-content-section-heading {
+  margin: 22px 0 14px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.lesson-content-section-heading h3 {
+  margin: 5px 0 8px;
+  font-size: clamp(18px, 3vw, 24px);
+}
+.lesson-content-section-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+.lesson-study-mode .lesson-article {
+  margin-top: 20px;
+}
+.lesson-study-mode .lesson-learning-card {
+  scroll-margin-top: 16px;
+}
