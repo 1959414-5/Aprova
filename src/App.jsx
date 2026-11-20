@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { ESSAY_COURSE, ESSAY_MODEL_TEXT, ESSAY_RUBRIC } from "./data/essayCourse";
 
 const EXAM_SLUG = "sbmg-2026-auxiliar-administrativo-financeiro";
+const SIMULATION_RUN_TYPE = "simulado_completo";
 const EXAM_DAY = "2027-01-24";
 const NAV_ITEMS = [
   { id: "dashboard", icon: "dashboard", label: "Visão geral" },
@@ -1489,7 +1490,7 @@ export default function App() {
     try {
       const { count: completedSimulations, error: countError } = await supabase.from("assessment_runs")
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id).eq("exam_id", exam.id).eq("run_type", "simulado")
+        .eq("user_id", user.id).eq("exam_id", exam.id).eq("run_type", SIMULATION_RUN_TYPE)
         .eq("question_count", 70).not("finished_at", "is", null);
       if (countError) throw countError;
 
@@ -1518,7 +1519,7 @@ export default function App() {
       const { data: run, error: runError } = await supabase.from("assessment_runs").insert({
         user_id: user.id,
         exam_id: exam.id,
-        run_type: "simulado",
+        run_type: SIMULATION_RUN_TYPE,
         title: `Simulado completo — versão ${simulationVersion} · 70 questões`,
         question_count: 70,
         metadata: {
