@@ -573,6 +573,28 @@ export default function App() {
     };
   }, []);
 
+  const resetUserData = useCallback(() => {
+    setExam(null); setSubjectRows([]); setProfile(null); setAttempts([]); setSessions([]);
+    setTopicLessons([]); setTopicProgressRows([]); setTutorTopicId(""); setTutorMessages([]);
+    setTutorDraft(""); setTutorRemaining(null); setTutorError("");
+    setEssaySubmissions([]); setEssayText(""); setEssayId(null); setEssayStatus("rascunho");
+    setEssayNotice(""); setEssayEvaluation(null); setEssayLearningProgress([]);
+    setEssayLearningTab("learn"); setActiveEssayLessonId("fundamentos");
+    setEssayLearningNotice(""); setEssayLessonCompletionPending(null); setEssayLessonStartPending(null);
+    setFlashcards([]); setFlashcardReviews([]); setFlashcardRevealed(false);
+    setExpandedSubject(null); setSelectedTopic(null); setActiveSession(null); setElapsedSeconds(0);
+    setQuizQuestions([]); setQuizRunId(null); setQuizElapsedSeconds(0); setQuizIndex(0);
+    setSelectedOption(""); setFeedback(null); setResponses([]); setQuizStartedAt(null);
+    setQuestionStartedAt(null); setQuizResult(null); setPendingDiagnosticResume(null);
+    setAssessmentConfirmAction(null); setAssessmentExitTarget("dashboard");
+    setProfileMenuOpen(false); setNotice(""); setView("dashboard");
+    try {
+      localStorage.removeItem("aprova-current-view");
+      localStorage.removeItem("aprova-selected-topic");
+      localStorage.removeItem("aprova-expanded-subject");
+    } catch { /* storage unavailable */ }
+  }, []);
+
   const loadDashboard = useCallback(async (currentUser) => {
     setBusy(true);
     try {
@@ -692,9 +714,19 @@ export default function App() {
     }
   }, []);
 
+  const loadedUserIdRef = useRef(null);
   useEffect(() => {
-    if (user?.id && supabase) loadDashboard(user);
-  }, [user?.id, loadDashboard]);
+    if (!user?.id) {
+      if (loadedUserIdRef.current !== null) resetUserData();
+      loadedUserIdRef.current = null;
+      return;
+    }
+    if (loadedUserIdRef.current !== user.id) {
+      resetUserData();
+      loadedUserIdRef.current = user.id;
+      if (supabase) loadDashboard(user);
+    }
+  }, [user?.id, loadDashboard, resetUserData]);
 
   const allTopics = useMemo(() => subjectRows.flatMap((row) => row.topics || []), [subjectRows]);
   useEffect(() => {
@@ -1604,8 +1636,7 @@ export default function App() {
       return;
     }
     setSession(null);
-    setView("dashboard");
-    setSubjectRows([]);
+    resetUserData();
   }
 
   function updateProfilePreference(key, value) {
