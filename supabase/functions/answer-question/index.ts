@@ -1,5 +1,7 @@
 import { withSupabase } from "npm:@supabase/server";
 
+const SIMULATION_RUN_TYPE = "simulado_completo";
+
 const ALLOWED_ORIGINS = new Set([
   "https://1959414-5.github.io",
   "http://localhost:5173",
@@ -96,7 +98,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         selected_option: selectedOption,
         is_correct: isCorrect,
         time_spent_seconds: safeSpent,
-        ai_feedback: runType === "simulado"
+        ai_feedback: runType === SIMULATION_RUN_TYPE
           ? null
           : (isCorrect ? "Resposta correta." : "Resposta incorreta. Revise a explicação e o tópico relacionado."),
       });
@@ -110,7 +112,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
     }
 
     // Simulado: não informa acerto/gabarito até a finalização pelo servidor.
-    if (runType === "simulado") {
+    if (runType === SIMULATION_RUN_TYPE) {
       return Response.json({ recorded: true, feedback_hidden: true }, {
         headers: { ...corsHeadersFor(req), "Content-Type": "application/json" },
       });
