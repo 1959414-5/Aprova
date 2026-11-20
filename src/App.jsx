@@ -612,6 +612,33 @@ export default function App() {
       const { data: examData, error: examError } = await supabase.from("exams").select("*").eq("slug", EXAM_SLUG).single();
       if (examError) throw examError;
 
+      // Paginate historical records so dashboard metrics use the full user history.
+      // The exact count lets pagination continue even if the API returns fewer rows
+      // than requested because of the project's configured maximum-row limit.
+      const fetchAllRows = async (buildPageQuery) => {
+        const pageSize = 500;
+        const allRows = [];
+        let offset = 0;
+        let totalCount = null;
+
+        while (true) {
+          const { data, error, count } = await buildPageQuery()
+            .range(offset, offset + pageSize - 1);
+          if (error) return { data: null, error };
+
+          const page = data || [];
+          if (count != null) totalCount = count;
+          allRows.push(...page);
+
+          if (page.length === 0) break;
+          offset += page.length;
+          if (totalCount != null && offset >= totalCount) break;
+          if (totalCount == null && page.length < pageSize) break;
+        }
+
+        return { data: allRows, error: null };
+      };
+
       // Fetch independent user/exam datasets concurrently to reduce total round-trips.
       const [
         openDiagnosticResult, profileResult, subjectsResult, attemptsResult,
@@ -625,10 +652,10 @@ export default function App() {
           .eq("user_id", currentUser.id).maybeSingle(),
         supabase.from("exam_subjects").select("id, display_order, question_count, total_points, points_per_question, subjects(id, slug, name), topics(id, slug, title, syllabus_text, priority, estimated_minutes, display_order)")
           .eq("exam_id", examData.id).order("display_order"),
-        supabase.from("question_attempts").select("id, is_correct, answered_at, question_id")
-          .eq("user_id", currentUser.id).order("answered_at", { ascending: false }).limit(500),
-        supabase.from("study_sessions").select("id, duration_minutes, topic_id, study_method, studied_at")
-          .eq("user_id", currentUser.id).order("studied_at", { ascending: false }).limit(300),
+        fetchAllRows(() => supabase.from("question_attempts").select("id, is_correct, answered_at, question_id", { count: "exact" })
+          .eq("user_id", currentUser.id).order("answered_at", { ascending: false }).order("id", { ascending: false })),
+        fetchAllRows(() => supabase.from("study_sessions").select("id, duration_minutes, topic_id, study_method, studied_at", { count: "exact" })
+          .eq("user_id", currentUser.id).order("studied_at", { ascending: false }).order("id", { ascending: false })),
         supabase.from("lesson_study_sessions").select("id, lesson_type, topic_id, essay_lesson_id, lesson_title, started_at, planned_minutes, goal_reached_at")
           .eq("user_id", currentUser.id).eq("status", "em_andamento").maybeSingle(),
         supabase.from("essay_submissions").select("id, prompt, text_content, line_count, score_adequacy, score_content, score_coherence, score_language, score_total, ai_feedback, status, created_at, ai_model")
