@@ -1,5 +1,7 @@
 import { withSupabase } from "npm:@supabase/server";
 
+const SIMULATION_RUN_TYPE = "simulado_completo";
+
 const ALLOWED_ORIGINS = new Set([
   "https://1959414-5.github.io",
   "http://localhost:5173",
@@ -82,7 +84,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
           max_score: null,
           correct_count: 0,
           question_count: 0,
-          metadata: { ...(run.metadata ?? {}), origin: run.run_type === "simulado" ? "banco_autoral_ia" : "banco_autoral_inicial", abandoned: true, partial: true },
+          metadata: { ...(run.metadata ?? {}), origin: run.run_type === SIMULATION_RUN_TYPE ? "banco_autoral_ia" : "banco_autoral_inicial", abandoned: true, partial: true },
         })
         .eq("id", runId)
         .eq("user_id", userId)
@@ -172,7 +174,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
     const finishedAt = new Date().toISOString();
     const resultMetadata = {
       ...(run.metadata ?? {}),
-      origin: run.run_type === "simulado" ? "banco_autoral_ia" : "banco_autoral_inicial",
+      origin: run.run_type === SIMULATION_RUN_TYPE ? "banco_autoral_ia" : "banco_autoral_inicial",
       partial: !isComplete,
       raw_points: rawPoints,
       raw_max_points: maxPoints,
