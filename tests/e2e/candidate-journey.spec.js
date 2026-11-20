@@ -76,6 +76,7 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
       const startButton = page.locator(".simulation-hero")
         .getByRole("button", { name: /Iniciar simulado completo/ });
       await expect(startButton).toBeEnabled({ timeout: 90000 });
+      const runStartedAfter = new Date(Date.now() - 1500).toISOString();
       await startButton.click();
 
       // Espera o registro persistido, ou retorna imediatamente o aviso da tela
@@ -88,6 +89,7 @@ test("sessão real do candidato: login, ciclo A-B-C, resultado e rascunho de red
           .eq("exam_id", exam.id)
           .eq("run_type", "simulado")
           .is("finished_at", null)
+          .gte("started_at", runStartedAfter)
           .order("started_at", { ascending: false })
           .limit(1)
           .maybeSingle();
