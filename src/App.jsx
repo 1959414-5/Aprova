@@ -237,11 +237,12 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
   }
 
   return (
-    <section className="lesson-panel" id="topic-lesson">
+    <section className={studyMode ? "lesson-panel lesson-study-mode" : "lesson-panel"} id="topic-lesson">
       <div className="lesson-panel-head">
         <div>
-          <span className="eyebrow">{studyMode ? "SESSÃO DE ESTUDO · " : "AULA DO EDITAL · "}{lesson?.source_basis || "Anexo III"}</span>
-          <h2>{topic.title}</h2>
+          <span className="eyebrow">{studyMode ? "CONTEÚDO DA AULA · " : "AULA DO EDITAL · "}{lesson?.source_basis || "Anexo III"}</span>
+          <h2>{studyMode ? "Aula em andamento" : topic.title}</h2>
+          {studyMode && <h3 className="lesson-study-topic-title">{topic.title}</h3>}
           <p className="muted">{content.introduction || "O conteúdo desta aula está sendo preparado."}</p>
         </div>
         <button className="icon-button lesson-close" onClick={onClose} title={studyMode ? "Voltar ao resumo do tópico" : "Fechar aula"} aria-label={studyMode ? "Voltar ao resumo do tópico" : "Fechar aula"}>{studyMode ? "↶" : "×"}</button>
@@ -254,6 +255,7 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
       {lesson && <>
         <div className="lesson-start-card"><div className="lesson-start-icon">✦</div><div><span className="eyebrow">MISSÃO DE APRENDIZAGEM</span><h3>Aprenda uma parte por vez. Não tente decorar tudo de uma vez.</h3><p>Leia o bloco, pare por alguns segundos e tente explicar a ideia sem olhar. Isso transforma leitura em memória.</p></div></div>
         <div className="lesson-learning-map"><div className="lesson-learning-map-head"><div><span className="eyebrow">TRILHA DA AULA</span><strong>{understoodSections.length} de {sections.length} etapas dominadas</strong></div><span className="lesson-map-percent">{lessonProgressPercent}%</span></div><div className="lesson-map-track"><span style={{width: lessonProgressPercent + "%"}} /></div><small className="lesson-progress-save-status" aria-live="polite">{progressSaveState === "saving" ? "Salvando suas marcações…" : progressSaveState === "error" ? "Falha ao salvar. Tente marcar novamente." : "Marcações salvas automaticamente"}</small><div className="lesson-map-steps">{sections.map((section,index)=><button key={index} className={understoodSections.includes(index) ? "lesson-map-step done" : "lesson-map-step"} onClick={() => document.getElementById("lesson-step-"+index).scrollIntoView({behavior:"smooth",block:"center"})} title={"Ir para: "+section.heading}><span>{understoodSections.includes(index) ? "✓" : index+1}</span></button>)}</div></div>
+        {studyMode && <div className="lesson-content-section-heading"><span className="eyebrow">AULA COMPLETA</span><h3>Conteúdo explicado passo a passo</h3><p>Leia os blocos abaixo. Marque cada etapa quando conseguir explicar o conceito sem consultar.</p></div>}
         <div className="lesson-hook-card"><span className="eyebrow">GANCHO · PENSE ANTES DE LER</span><p>{content.hook || "Antes de estudar, pense em uma situação real em que esse conceito pode aparecer."}</p></div>
         <LessonVisualAid topic={topic} content={content} />
         <div className="lesson-section lesson-objectives-card"><span className="eyebrow">AO FINAL, VOCÊ CONSEGUIRÁ</span><ul className="lesson-objectives">{(content.objectives || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
@@ -1954,7 +1956,7 @@ export default function App() {
           </div>
         </header>
         {notice && <div className="global-notice"><span>{notice}</span><button onClick={() => setNotice("")}>×</button></div>}
-        {activeSession && (
+        {activeSession && view !== "topic-session" && (
           <div className="active-session-strip">
             <div><span className="session-live-dot" /><strong>Sessão em andamento</strong><small>{activeSession.lessonTitle || activeSession.topicTitle}</small></div>
             {(() => {
