@@ -1,10 +1,19 @@
 import { withSupabase } from "npm:@supabase/server";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+const ALLOWED_ORIGINS = new Set([
+  "https://1959414-5.github.io",
+  "http://localhost:5173",
+]);
+
+function corsHeadersFor(req: Request): HeadersInit {
+  const origin = req.headers.get("origin") ?? "";
+  return {
+    ...(ALLOWED_ORIGINS.has(origin) ? { "Access-Control-Allow-Origin": origin } : {}),
+    "Access-Control-Allow-Headers": "authorization, apikey, x-client-info, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
 
 const EXAM_SLUG = "sbmg-2026-auxiliar-administrativo-financeiro";
 const QUESTION_DISTRIBUTION: Record<string, number> = {
@@ -166,18 +175,18 @@ function isValidStoredOrder(
 
 const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
   if (req.method !== "POST") {
-    return Response.json({ error: "Método não permitido." }, { status: 405, headers: corsHeaders });
+    return Response.json({ error: "Método não permitido." }, { status: 405, headers: corsHeadersFor(req) });
   }
 
   try {
     const userId = ctx.userClaims?.id;
     if (!userId) {
-      return Response.json({ error: "Sessão não identificada." }, { status: 401, headers: corsHeaders });
+      return Response.json({ error: "Sessão não identificada." }, { status: 401, headers: corsHeadersFor(req) });
     }
 
     const body = await req.json().catch(() => ({}));
     if (body.action !== "start") {
-      return Response.json({ error: "Ação inválida." }, { status: 400, headers: corsHeaders });
+      return Response.json({ error: "Ação inválida." }, { status: 400, headers: corsHeadersFor(req) });
     }
 
     const admin = ctx.supabaseAdmin;
@@ -187,7 +196,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .eq("slug", EXAM_SLUG)
       .maybeSingle();
     if (examError || !exam) {
-      return Response.json({ error: "Concurso não encontrado." }, { status: 404, headers: corsHeaders });
+      return Response.json({ error: "Concurso não encontrado." }, { status: 404, headers: corsHeadersFor(req) });
     }
 
     const { data: subjectRows, error: subjectsError } = await admin
@@ -196,7 +205,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .eq("exam_id", exam.id)
       .order("display_order");
     if (subjectsError || !subjectRows) {
-      return Response.json({ error: "Não foi possível carregar as disciplinas do diagnóstico." }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: "Não foi possível carregar as disciplinas do diagnóstico." }, { status: 500, headers: corsHeadersFor(req) });
     }
 
     const subjects = subjectRows as SubjectRow[];
@@ -211,7 +220,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .eq("exam_id", exam.id)
       .eq("is_published", true);
     if (bankError || !bankRows) {
-      return Response.json({ error: "Não foi possível carregar o banco de questões." }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: "Não foi possível carregar o banco de questões." }, { status: 500, headers: corsHeadersFor(req) });
     }
     const bank = bankRows as QuestionRow[];
 
@@ -224,7 +233,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       .is("finished_at", null)
       .order("started_at", { ascending: false });
     if (openRunsError) {
-      return Response.json({ error: "Não foi possível verificar uma tentativa em andamento." }, { status: 500, headers: corsHeaders });
+      return Response.json({ error: "Não foi possível verificar uma tentativa em andamento." }, { status: 500, headers: corsHeadersFor(req) });
     }
 
     let run = (openRuns || []).find((candidate) => Number(candidate.question_count) === EXPECTED_QUESTIONS) || null;
@@ -239,13 +248,13 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
         .eq("user_id", userId)
         .order("answered_at", { ascending: true });
       if (attemptsError || !attemptRows) {
-        return Response.json({ error: "Não foi possível recuperar as respostas registradas." }, { status: 500, headers: corsHeaders });
+        return Response.json({ error: "Não foi possível recuperar as respostas registradas." }, { status: 500, headers: corsHeadersFor(req) });
       }
       attempts = attemptRows as AttemptRow[];
 
       const uniqueAttemptIds = new Set(attempts.map((attempt) => attempt.question_id));
       if (uniqueAttemptIds.size !== attempts.length) {
-        return Response.json({ error: "Há respostas duplicadas nesta tentativa. Os dados foram preservados para análise." }, { status: 409, headers: corsHeaders });
+        return Response.json({ error: "Há respostas duplicadas nesta tentativa. Os dados foram preservados para análise." }, { status: 409, headers: corsHeadersFor(req) });
       }
 
       const storedIds = run.metadata?.question_ids;
@@ -276,7 +285,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
           .eq("user_id", userId)
           .is("finished_at", null);
         if (repairError) {
-          return Response.json({ error: "Não foi possível preparar a retomada. Nenhuma resposta foi alterada." }, { status: 500, headers: corsHeaders });
+          return Response.json({ error: "Não foi possível preparar a retomada. Nenhuma resposta foi alterada." }, { status: 500, headers: corsHeadersFor(req) });
         }
         run = {
           ...run,
@@ -324,7 +333,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
           .eq("assessment_run_id", stale.id)
           .eq("user_id", userId);
         if (countError || Number(count || 0) > 0) {
-          return Response.json({ error: "Há uma tentativa anterior com respostas. Ela precisa ser recuperada antes de iniciar outra." }, { status: 409, headers: corsHeaders });
+          return Response.json({ error: "Há uma tentativa anterior com respostas. Ela precisa ser recuperada antes de iniciar outra." }, { status: 409, headers: corsHeadersFor(req) });
         }
         const closedAt = new Date().toISOString();
         const { error: closeError } = await admin
@@ -342,7 +351,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
           .eq("user_id", userId)
           .is("finished_at", null);
         if (closeError) {
-          return Response.json({ error: "Não foi possível encerrar uma tentativa vazia antiga." }, { status: 500, headers: corsHeaders });
+          return Response.json({ error: "Não foi possível encerrar uma tentativa vazia antiga." }, { status: 500, headers: corsHeadersFor(req) });
         }
       }
 
@@ -350,7 +359,7 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       try {
         questionIds = makeQuestionOrder(subjects, bank, [], subjectSlugById);
       } catch (selectionError) {
-        return Response.json({ error: selectionError instanceof Error ? selectionError.message : "Banco insuficiente para o diagnóstico." }, { status: 409, headers: corsHeaders });
+        return Response.json({ error: selectionError instanceof Error ? selectionError.message : "Banco insuficiente para o diagnóstico." }, { status: 409, headers: corsHeadersFor(req) });
       }
 
       const startedAt = new Date().toISOString();
@@ -375,10 +384,10 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
 
       if (insertError) {
         if (insertError.code === "23505") {
-          return Response.json({ error: "O diagnóstico já foi iniciado em outra aba. Clique novamente para retomá-lo." }, { status: 409, headers: corsHeaders });
+          return Response.json({ error: "O diagnóstico já foi iniciado em outra aba. Clique novamente para retomá-lo." }, { status: 409, headers: corsHeadersFor(req) });
         }
         console.error("Falha ao criar diagnóstico:", insertError.message);
-        return Response.json({ error: "Não foi possível iniciar o diagnóstico." }, { status: 500, headers: corsHeaders });
+        return Response.json({ error: "Não foi possível iniciar o diagnóstico." }, { status: 500, headers: corsHeadersFor(req) });
       }
       run = insertedRun;
       attempts = [];
@@ -387,13 +396,13 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
 
     const finalQuestionIds = run.metadata?.question_ids as string[] | undefined;
     if (!Array.isArray(finalQuestionIds) || finalQuestionIds.length !== EXPECTED_QUESTIONS) {
-      return Response.json({ error: "A sequência de questões não está íntegra. Tente novamente; suas respostas foram preservadas." }, { status: 409, headers: corsHeaders });
+      return Response.json({ error: "A sequência de questões não está íntegra. Tente novamente; suas respostas foram preservadas." }, { status: 409, headers: corsHeadersFor(req) });
     }
 
     const questionById = new Map(bank.map((question) => [question.id, question]));
     const orderedQuestions = finalQuestionIds.map((id) => questionById.get(id));
     if (orderedQuestions.some((question) => !question)) {
-      return Response.json({ error: "Uma questão da tentativa não está mais publicada. Nenhuma resposta foi apagada." }, { status: 409, headers: corsHeaders });
+      return Response.json({ error: "Uma questão da tentativa não está mais publicada. Nenhuma resposta foi apagada." }, { status: 409, headers: corsHeadersFor(req) });
     }
 
     const safeAttempts = attempts.map((attempt) => {
@@ -431,16 +440,16 @@ const handler = withSupabase({ auth: "user" }, async (req, ctx) => {
       attempts: safeAttempts,
       completed_pending: attempts.length === EXPECTED_QUESTIONS,
       last_answer_feedback: lastAnswerFeedback,
-    }, { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }, { headers: { ...corsHeadersFor(req), "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Falha em diagnostic-session:", error);
     return Response.json({
       error: error instanceof Error ? error.message : "Não foi possível preparar o diagnóstico.",
-    }, { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }, { status: 500, headers: { ...corsHeadersFor(req), "Content-Type": "application/json" } });
   }
 });
 
 Deno.serve((req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeadersFor(req) });
   return handler(req);
 });
