@@ -1789,7 +1789,7 @@ export default function App() {
         <div className="sidebar-label">ÁREA DE ESTUDOS</div>
         <nav className="side-nav">
           {NAV_ITEMS.filter((item) => item.id !== "tutor").map((item) => (
-            <button key={item.id} title={sidebarCollapsed ? item.label : undefined} aria-label={item.label} className={view === item.id || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? startDiagnostic() : requestAssessmentExit(item.id)}>
+            <button key={item.id} title={sidebarCollapsed ? item.label : undefined} aria-label={item.label} className={view === item.id || (view === "results" && item.id === (quizResult?.mode === "simulado" ? "simulations" : "diagnostic")) || (view === "simulation" && item.id === "simulations") ? "nav-link active" : "nav-link"} onClick={() => item.id === "diagnostic" ? (view === "diagnostic" && quizRunId ? requestAssessmentExit("diagnostic") : setView("diagnostic")) : requestAssessmentExit(item.id)}>
               <span className="nav-icon"><NavIcon name={item.id} /></span><span className="nav-label">{item.label}</span>
             </button>
           ))}
