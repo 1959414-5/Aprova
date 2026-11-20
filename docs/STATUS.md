@@ -10,7 +10,7 @@
 - Simulados de 70 questões em três bancos rotativos (A/B/C), distribuição de 10/10/10/10/30 e nota ponderada server-side. A rotação é individual e avança após cada tentativa completa.
 - Gabarito oculto durante simulado.
 - Professor IA contextualizado pela aula; Edge Function autenticada `study-tutor`.
-- Curso de Redação: seis aulas autorais em quatro etapas (Aprender, Praticar, Analisar e Escrever), com exercícios objetivos e explicação, texto-modelo comentado e rubrica do edital.
+- Curso de Redação: seis aulas autorais em quatro etapas (Aprender, Praticar, Analisar e Escrever), com exercícios objetivos e explicação, texto-modelo comentado, rubrica do edital e 12 propostas com rotação automática.
 - `assessment_runs`: tentativas diagnósticas com uma sessão ativa por usuário/concurso, sequência de questões em `metadata.question_ids` e retomada autenticada por `diagnostic-session`.
 - `essay_learning_progress`: progresso individual por aula (`nao_iniciada`, `em_andamento`, `concluida`), respostas de exercícios e datas de início/conclusão, com RLS.
 - Abertura/visualização não altera progresso; iniciar exige confirmação; conclusão também exige confirmação. Cada sessão é vinculada ao tópico ou à aula de redação e registra início, término e duração em segundos. Sessões salvas não concluem automaticamente o conteúdo; é possível retomar a aula.
@@ -38,7 +38,7 @@
 ## Pendências antes do uso efetivo
 1. Build/deploy e teste visual das telas Redação e Revisões.
 2. Testar Professor IA e correção de redação com saldo e sessão autenticada.
-3. Revisar humanamente as 70 questões autorais e seus gabaritos.
+3. Revisar humanamente as 210 questões autorais e seus gabaritos.
 4. Testar diagnóstico e simulado ponta a ponta com a conta autenticada do candidato (o teste de navegador com a sessão real ainda precisa ser feito).
 5. Importar e conferir separadamente as questões históricas oficiais de 2019.
 6. Habilitar Leaked Password Protection no Supabase Auth.
