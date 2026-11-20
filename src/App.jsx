@@ -1483,24 +1483,60 @@ export default function App() {
     }
   }
 
-  function showCompletedDiagnostic() {
-    if (!completedDiagnosticResult) return;
-    const metadata = completedDiagnosticResult.metadata || {};
-    const subjects = (metadata.subject_breakdown || []).map((subject) => ({
-      ...subject,
-      percentage: subject.max_points ? Number(((Number(subject.raw_points || 0) / Number(subject.max_points)) * 100).toFixed(1)) : 0,
-    }));
-    setQuizMode("diagnostico");
-    setQuizResult({
-      mode: "diagnostico",
-      score: Number(completedDiagnosticResult.score || 0),
-      correct: Number(completedDiagnosticResult.correct_count || 0),
-      total: Number(completedDiagnosticResult.question_count || 0),
-      minutes: Math.max(1, Math.round(Number(completedDiagnosticResult.duration_seconds || 0) / 60)),
-      subjects,
-      saved: true,
-    });
-    setView("results");
+  async function showCompletedDiagnostic() {
+    if (!completedDiagnosticResult || busy) return;
+    setBusy(true);
+    try {
+      const { data: attempts, error: attemptsError } = await supabase
+        .from("question_attempts")
+        .select("question_id, selected_option, is_correct, answered_at")
+        .eq("assessment_run_id", completedDiagnosticResult.id)
+        .eq("user_id", user.id)
+        .order("answered_at", { ascending: true });
+      if (attemptsError) throw attemptsError;
+      const questionIds = (attempts || []).map((attempt) => attempt.question_id);
+      const { data: questions, error: questionsError } = await supabase
+        .from("questions")
+        .select("id, statement, options, correct_option, explanation, points")
+        .in("id", questionIds);
+      if (questionsError) throw questionsError;
+      const questionMap = new Map((questions || []).map((question) => [question.id, question]));
+      const review = (attempts || []).map((attempt) => {
+        const question = questionMap.get(attempt.question_id);
+        if (!question) return null;
+        return {
+          question_id: question.id,
+          statement: question.statement,
+          options: question.options,
+          selected_option: attempt.selected_option,
+          correct_option: question.correct_option,
+          correct: attempt.selected_option === question.correct_option,
+          explanation: question.explanation,
+          points: Number(question.points || 0),
+        };
+      }).filter(Boolean);
+      const metadata = completedDiagnosticResult.metadata || {};
+      const subjects = (metadata.subject_breakdown || []).map((subject) => ({
+        ...subject,
+        percentage: subject.max_points ? Number(((Number(subject.raw_points || 0) / Number(subject.max_points)) * 100).toFixed(1)) : 0,
+      }));
+      setQuizMode("diagnostico");
+      setQuizResult({
+        mode: "diagnostico",
+        score: Number(completedDiagnosticResult.score || 0),
+        correct: Number(completedDiagnosticResult.correct_count || 0),
+        total: Number(completedDiagnosticResult.question_count || 0),
+        minutes: Math.max(1, Math.round(Number(completedDiagnosticResult.duration_seconds || 0) / 60)),
+        subjects,
+        review,
+        saved: true,
+      });
+      setView("results");
+    } catch (err) {
+      setNotice(err.message || "Não foi possível carregar o gabarito salvo do diagnóstico.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function startDiagnostic() {
