@@ -1,0 +1,51 @@
+name: E2E - Sessão real do candidato
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aprova-e2e-candidate
+  cancel-in-progress: false
+
+jobs:
+  candidate-e2e:
+    name: Jornada real do candidato
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Validate required secrets
+        env:
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+        run: |
+          if [ -z "${E2E_TEST_EMAIL:-}" ] || [ -z "${E2E_TEST_PASSWORD:-}" ]; then
+            echo "::error::Configure E2E_TEST_EMAIL e E2E_TEST_PASSWORD em Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E against the published site
+        run: npm run test:e2e
+        env:
+          E2E_BASE_URL: https://1959414-5.github.io/Aprova/
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          VITE_SUPABASE_URL: https://ehsrjjflwrmmegfvupch.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_hrtEx-BAQq5Y-1II4SdscA_pz48EQ2f
