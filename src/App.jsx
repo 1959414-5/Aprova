@@ -329,6 +329,104 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
   );
 }
 
+function TopicOverviewPanel({ topic, lesson, progress, plannedMinutes, activeSession, busy, onStart, onOpenSession, onClose, onAskTutor, onMarkComplete }) {
+  const [confirmStart, setConfirmStart] = useState(false);
+  const content = lesson?.content || {};
+  const objectives = content.objectives || [];
+  const summary = content.summary || [];
+  const understood = Array.isArray(progress?.lesson_state?.understood_sections) ? progress.lesson_state.understood_sections : [];
+  const sectionCount = (content.sections || []).length;
+  const progressPercent = sectionCount ? Math.round((understood.length / sectionCount) * 100) : 0;
+  const hasActiveSession = activeSession?.kind === "topico" && activeSession?.topicId === topic.id;
+  const anotherSessionActive = Boolean(activeSession) && !hasActiveSession;
+  const completed = progress?.status === "concluido";
+  const inProgress = progress?.status === "em_andamento";
+
+  async function confirmStudyStart() {
+    if (busy || anotherSessionActive) return;
+    setConfirmStart(false);
+    await onStart();
+  }
+
+  return (
+    <section className="topic-overview-page">
+      <button className="back-button lesson-back-button" onClick={onClose}>← Voltar à lista de aulas</button>
+      <header className="topic-overview-header">
+        <span className="eyebrow">RESUMO DO TÓPICO · {lesson?.source_basis || "Edital 001/2026"}</span>
+        <h1>{topic.title}</h1>
+        <p>{content.introduction || topic.syllabus_text || "Confira os objetivos e o resumo antes de iniciar sua sessão de estudo."}</p>
+      </header>
+
+      <div className="topic-overview-status">
+        <div>
+          <span className="eyebrow">SITUAÇÃO DO TÓPICO</span>
+          <strong>{completed ? "Concluído" : inProgress ? "Em andamento" : "Ainda não iniciado"}</strong>
+        </div>
+        <div>
+          <span className="eyebrow">TEMPO PLANEJADO</span>
+          <strong>{hasActiveSession ? activeSession.plannedMinutes : plannedMinutes} min</strong>
+        </div>
+        <div>
+          <span className="eyebrow">ETAPAS DOMINADAS</span>
+          <strong>{understood.length} de {sectionCount} · {progressPercent}%</strong>
+        </div>
+      </div>
+
+      {objectives.length > 0 && (
+        <section className="topic-overview-block">
+          <span className="eyebrow">O QUE VOCÊ VAI APRENDER</span>
+          <ul>{objectives.map((item, index) => <li key={index}>{item}</li>)}</ul>
+        </section>
+      )}
+
+      {summary.length > 0 && (
+        <section className="topic-overview-block topic-overview-summary">
+          <span className="eyebrow">RESUMO RÁPIDO</span>
+          <ol>{summary.map((item, index) => <li key={index}>{item}</li>)}</ol>
+        </section>
+      )}
+
+      <section className="topic-overview-next">
+        <div>
+          <span className="eyebrow">PRÓXIMA ETAPA</span>
+          <h2>{hasActiveSession ? "Sua sessão já está ativa" : completed ? "Revisar este conteúdo" : inProgress ? "Continue sua preparação" : "Comece sua aula completa"}</h2>
+          <p>{hasActiveSession
+            ? "Você já tem uma sessão em andamento neste tópico. Continue de onde parou."
+            : anotherSessionActive
+              ? "Finalize ou salve a outra sessão antes de iniciar este tópico."
+              : "Ao iniciar, você será levado para uma página exclusiva com os blocos explicativos, exemplos, desafios e marcações da aula."}</p>
+        </div>
+        {hasActiveSession ? (
+          <button className="button button-primary button-wide" onClick={onOpenSession}>Continuar sessão de estudo →</button>
+        ) : (
+          <button className="button button-primary button-wide" onClick={() => setConfirmStart(true)} disabled={busy || anotherSessionActive || !lesson}>
+            {anotherSessionActive ? "Finalize a sessão atual" : completed ? "Iniciar revisão" : inProgress ? "Iniciar nova sessão de estudo" : "Iniciar estudo"} →
+          </button>
+        )}
+        <button className="button button-secondary button-wide" onClick={onAskTutor}>Tirar dúvida com o Professor IA</button>
+        {inProgress && !hasActiveSession && !anotherSessionActive && (
+          <button className="text-button" onClick={onMarkComplete} disabled={busy}>Marcar tópico como concluído</button>
+        )}
+      </section>
+
+      {confirmStart && (
+        <div className="lesson-confirm-backdrop" role="presentation">
+          <div className="lesson-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="topic-overview-confirm-title">
+            <span className="eyebrow">CONFIRMAÇÃO NECESSÁRIA</span>
+            <h3 id="topic-overview-confirm-title">{completed ? "Iniciar revisão deste tópico?" : "Iniciar esta aula?"}</h3>
+            <p>Você será direcionado para a página de estudo, onde encontrará o conteúdo completo dividido em etapas. O cronômetro começará após a confirmação.</p>
+            <p className="lesson-confirm-warning">O resumo desta tela não será substituído por outra seção da mesma página. A aula completa será aberta em uma tela separada.</p>
+            <div className="lesson-confirm-actions">
+              <button className="button button-secondary" onClick={() => setConfirmStart(false)}>Não, voltar</button>
+              <button className="button button-primary" onClick={confirmStudyStart} disabled={busy}>Sim, abrir aula e iniciar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function EssayExerciseCard({ lesson, progress, onAnswer, disabled = false }) {
   const chosen = progress?.exercise_answers?.selected_option;
   const answered = Number.isInteger(chosen);
@@ -2165,10 +2263,10 @@ export default function App() {
         )}
 
         {(view === "study" || view === "topic-session") && (
-          <section className={selectedTopic ? "content-section study-session-page" : "content-section"}>
+          <section className="content-section">
             {selectedTopic ? (
-              <>
-                {view === "topic-session" ? (
+              view === "topic-session" ? (
+                <>
                   <div className="topic-session-page-heading">
                     <button className="back-button lesson-back-button" onClick={() => setView("study")}>← Voltar ao resumo do tópico</button>
                     <span className="eyebrow">PÁGINA DE ESTUDO · SESSÃO ATIVA</span>
@@ -2179,34 +2277,46 @@ export default function App() {
                       <span>·</span>
                       <span>Tempo contabilizado nesta sessão</span>
                     </div>
-                    <p className="muted">Agora você está na página dedicada de estudo. O cronômetro e as marcações ficam vinculados a este tópico e são salvos automaticamente.</p>
                   </div>
-                ) : (
-                  <button className="back-button lesson-back-button" onClick={closeTopicLesson}>← Voltar à lista de aulas</button>
-                )}
-                <TopicLessonPanel
+                  <TopicLessonPanel
+                    key={selectedTopic.id}
+                    topic={selectedTopic}
+                    lesson={selectedLesson}
+                    progress={topicProgressById.get(selectedTopic.id)}
+                    plannedMinutes={plannedMinutes}
+                    activeSession={activeSession}
+                    elapsedSeconds={elapsedSeconds}
+                    busy={busy || lessonSessionBusy}
+                    studyMode
+                    onSaveLearningState={(lessonState) => saveTopicLearningState(selectedTopic.id, lessonState)}
+                    onStart={() => startTopicSession(selectedTopic)}
+                    onFinish={(complete) => finishTopicSession(complete)}
+                    onMarkComplete={() => markTopicCompleted(selectedTopic)}
+                    onCancel={cancelTopicSession}
+                    onAskTutor={() => { setTutorTopicId(selectedTopic.id); setView("tutor"); }}
+                    onClose={() => setView("study")}
+                  />
+                </>
+              ) : (
+                <TopicOverviewPanel
                   key={selectedTopic.id}
                   topic={selectedTopic}
                   lesson={selectedLesson}
                   progress={topicProgressById.get(selectedTopic.id)}
                   plannedMinutes={plannedMinutes}
                   activeSession={activeSession}
-                  elapsedSeconds={elapsedSeconds}
                   busy={busy || lessonSessionBusy}
-                  studyMode={view === "topic-session"}
-                  onSaveLearningState={(lessonState) => saveTopicLearningState(selectedTopic.id, lessonState)}
                   onStart={() => startTopicSession(selectedTopic)}
-                  onFinish={(complete) => finishTopicSession(complete)}
-                  onMarkComplete={() => markTopicCompleted(selectedTopic)}
-                  onCancel={cancelTopicSession}
+                  onOpenSession={() => setView("topic-session")}
+                  onClose={closeTopicLesson}
                   onAskTutor={() => { setTutorTopicId(selectedTopic.id); setView("tutor"); }}
-                  onClose={view === "topic-session" ? () => setView("study") : closeTopicLesson}
+                  onMarkComplete={() => markTopicCompleted(selectedTopic)}
                 />
-              </>
+              )
             ) : (
               <>
                 <div className="page-heading"><span className="eyebrow">ANEXO III · EDITAL 001/2026</span><h1>Sala de estudos</h1><p className="muted">Aulas organizadas pelo edital, com explicações desde o básico, exemplos e atividades de fixação.</p></div>
-                <div className="study-weight-note"><strong>Meta da próxima sessão: {plannedMinutes} minutos</strong><span>Abra uma aula e confirme o início. O cronômetro avisará ao atingir a meta, sem encerrar a sessão.</span></div>
+                <div className="study-weight-note"><strong>Meta da próxima sessão: {plannedMinutes} minutos</strong><span>Abra um tópico para visualizar o resumo. Ao iniciar, a aula completa abrirá em uma página separada.</span></div>
                 <div className="study-subject-grid">
                   {subjectRows.map((row) => {
                     const subject = row.subjects || {};
@@ -2221,7 +2331,6 @@ export default function App() {
                       const referenceMinutes = Math.max(1, Number(topic.estimated_minutes || 60));
                       return Math.min(99, Math.round((savedMinutes + liveMinutes) / referenceMinutes * 100));
                     };
-                    const studied = topics.filter((topic) => completedTopicIds.has(topic.id)).length;
                     const subjectProgress = topics.length
                       ? Math.round(topics.reduce((sum, topic) => sum + topicProgressPercent(topic), 0) / topics.length)
                       : 0;
@@ -2254,7 +2363,7 @@ export default function App() {
                                 </div>
                               </div>
                               <button className="button button-secondary topic-open-button" onClick={() => openLesson(topic)}>
-                                Abrir aula <span aria-hidden="true">→</span>
+                                Ver resumo <span aria-hidden="true">→</span>
                               </button>
                             </div>
                           ))}
@@ -2267,7 +2376,6 @@ export default function App() {
             )}
           </section>
         )}
-
         {view === "tutor" && (
           <section className="content-section tutor-view">
             <div className="page-heading">
