@@ -185,16 +185,40 @@ function LessonVisualAid({ topic, content }) {
   return <div className="lesson-visual-aid"><span className="eyebrow">VISUAL PARA ENTENDER</span><h3>{aid.label}</h3><div className="lesson-visual-flow">{aid.items.map((item,i)=><div className="lesson-visual-node" key={i}><b>{item[0]}</b><span>{item[1]}</span>{i<aid.items.length-1&&<i aria-hidden="true">↓</i>}</div>)}</div><p>{aid.note}</p></div>;
 }
 
-function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, onStart, onFinish, onMarkComplete, onCancel, onAskTutor, onClose }) {
+function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSession, elapsedSeconds, busy, studyMode = false, onStart, onFinish, onMarkComplete, onCancel, onAskTutor, onClose, onSaveLearningState }) {
   const [completionMode, setCompletionMode] = useState(null);
-  const [understoodSections, setUnderstoodSections] = useState([]);
-  const [revealedChecks, setRevealedChecks] = useState([]);
-  const [challengeRevealed, setChallengeRevealed] = useState(false);
+  const [understoodSections, setUnderstoodSections] = useState(() => Array.isArray(progress?.lesson_state?.understood_sections) ? progress.lesson_state.understood_sections : []);
+  const [revealedChecks, setRevealedChecks] = useState(() => Array.isArray(progress?.lesson_state?.revealed_checks) ? progress.lesson_state.revealed_checks : []);
+  const [challengeRevealed, setChallengeRevealed] = useState(() => progress?.lesson_state?.challenge_revealed === true);
+  const [progressSaveState, setProgressSaveState] = useState("saved");
+  const progressSaveVersionRef = useRef(0);
   const content = lesson?.content || {};
   const sections = content.sections || [];
   const lessonProgressPercent = sections.length ? Math.round((understoodSections.length / sections.length) * 100) : 0;
-  function toggleSectionUnderstood(index) { setUnderstoodSections((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]); }
-  function toggleCheckReveal(index) { setRevealedChecks((current) => current.includes(index) ? current.filter((item) => item !== index) : [...current, index]); }
+  function persistLearningState(nextState) {
+    const version = ++progressSaveVersionRef.current;
+    setProgressSaveState("saving");
+    Promise.resolve(onSaveLearningState(nextState)).then(() => {
+      if (version === progressSaveVersionRef.current) setProgressSaveState("saved");
+    }).catch(() => {
+      if (version === progressSaveVersionRef.current) setProgressSaveState("error");
+    });
+  }
+  function toggleSectionUnderstood(index) {
+    const next = understoodSections.includes(index) ? understoodSections.filter((item) => item !== index) : [...understoodSections, index];
+    setUnderstoodSections(next);
+    persistLearningState({ understood_sections: next, revealed_checks: revealedChecks, challenge_revealed: challengeRevealed });
+  }
+  function toggleCheckReveal(index) {
+    const next = revealedChecks.includes(index) ? revealedChecks.filter((item) => item !== index) : [...revealedChecks, index];
+    setRevealedChecks(next);
+    persistLearningState({ understood_sections: understoodSections, revealed_checks: next, challenge_revealed: challengeRevealed });
+  }
+  function toggleChallengeReveal() {
+    const next = !challengeRevealed;
+    setChallengeRevealed(next);
+    persistLearningState({ understood_sections: understoodSections, revealed_checks: revealedChecks, challenge_revealed: next });
+  }
   const hasActiveSession = activeSession?.kind === "topico" && activeSession?.topicId === topic.id;
   const anotherSessionActive = Boolean(activeSession) && !hasActiveSession;
   const completed = progress?.status === "concluido";
@@ -212,11 +236,11 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
     <section className="lesson-panel" id="topic-lesson">
       <div className="lesson-panel-head">
         <div>
-          <span className="eyebrow">AULA DO EDITAL · {lesson?.source_basis || "Anexo III"}</span>
+          <span className="eyebrow">{studyMode ? "SESSÃO DE ESTUDO · " : "AULA DO EDITAL · "}{lesson?.source_basis || "Anexo III"}</span>
           <h2>{topic.title}</h2>
           <p className="muted">{content.introduction || "O conteúdo desta aula está sendo preparado."}</p>
         </div>
-        <button className="icon-button lesson-close" onClick={onClose} title="Fechar aula" aria-label="Fechar aula">×</button>
+        <button className="icon-button lesson-close" onClick={onClose} title={studyMode ? "Voltar ao resumo do tópico" : "Fechar aula"} aria-label={studyMode ? "Voltar ao resumo do tópico" : "Fechar aula"}>{studyMode ? "↶" : "×"}</button>
       </div>
       <div className="lesson-open-safety-note">
         <strong>Visualização da aula</strong>
@@ -225,7 +249,7 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
       {!lesson && <div className="notice notice-success">Esta aula ainda está em preparação. O tópico do edital já está cadastrado.</div>}
       {lesson && <>
         <div className="lesson-start-card"><div className="lesson-start-icon">✦</div><div><span className="eyebrow">MISSÃO DE APRENDIZAGEM</span><h3>Aprenda uma parte por vez. Não tente decorar tudo de uma vez.</h3><p>Leia o bloco, pare por alguns segundos e tente explicar a ideia sem olhar. Isso transforma leitura em memória.</p></div></div>
-        <div className="lesson-learning-map"><div className="lesson-learning-map-head"><div><span className="eyebrow">TRILHA DA AULA</span><strong>{understoodSections.length} de {sections.length} etapas dominadas</strong></div><span className="lesson-map-percent">{lessonProgressPercent}%</span></div><div className="lesson-map-track"><span style={{width: lessonProgressPercent + "%"}} /></div><div className="lesson-map-steps">{sections.map((section,index)=><button key={index} className={understoodSections.includes(index) ? "lesson-map-step done" : "lesson-map-step"} onClick={() => document.getElementById("lesson-step-"+index).scrollIntoView({behavior:"smooth",block:"center"})} title={"Ir para: "+section.heading}><span>{understoodSections.includes(index) ? "✓" : index+1}</span></button>)}</div></div>
+        <div className="lesson-learning-map"><div className="lesson-learning-map-head"><div><span className="eyebrow">TRILHA DA AULA</span><strong>{understoodSections.length} de {sections.length} etapas dominadas</strong></div><span className="lesson-map-percent">{lessonProgressPercent}%</span></div><div className="lesson-map-track"><span style={{width: lessonProgressPercent + "%"}} /></div><small className="lesson-progress-save-status" aria-live="polite">{progressSaveState === "saving" ? "Salvando suas marcações…" : progressSaveState === "error" ? "Falha ao salvar. Tente marcar novamente." : "Marcações salvas automaticamente"}</small><div className="lesson-map-steps">{sections.map((section,index)=><button key={index} className={understoodSections.includes(index) ? "lesson-map-step done" : "lesson-map-step"} onClick={() => document.getElementById("lesson-step-"+index).scrollIntoView({behavior:"smooth",block:"center"})} title={"Ir para: "+section.heading}><span>{understoodSections.includes(index) ? "✓" : index+1}</span></button>)}</div></div>
         <div className="lesson-hook-card"><span className="eyebrow">GANCHO · PENSE ANTES DE LER</span><p>{content.hook || "Antes de estudar, pense em uma situação real em que esse conceito pode aparecer."}</p></div>
         <LessonVisualAid topic={topic} content={content} />
         <div className="lesson-section lesson-objectives-card"><span className="eyebrow">AO FINAL, VOCÊ CONSEGUIRÁ</span><ul className="lesson-objectives">{(content.objectives || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
@@ -235,7 +259,7 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
           <div className="lesson-section lesson-summary"><span className="eyebrow">⚡ REVISÃO EM 30 SEGUNDOS</span><ul>{(content.summary || []).map((item, index) => <li key={index}><span className="lesson-summary-bullet">{index+1}</span>{item}</li>)}</ul></div>
           <div className="lesson-section lesson-mistakes"><span className="eyebrow">⚠️ PEGADINHAS QUE PODEM CUSTAR PONTOS</span><ul>{(content.common_mistakes || []).map((item, index) => <li key={index}>{item}</li>)}</ul></div>
         </div>
-        {content.challenge && <div className="lesson-challenge-card"><span className="eyebrow">DESAFIO FINAL · TESTE SUA COMPREENSÃO</span><h3>{content.challenge.prompt}</h3><button className="text-button" onClick={() => setChallengeRevealed((v) => !v)}>{challengeRevealed ? "Ocultar resposta" : "Conferir resposta e raciocínio"}</button>{challengeRevealed && <div className="lesson-challenge-answer"><strong>Resposta comentada</strong><p>{content.challenge.answer}</p></div>}</div>}
+        {content.challenge && <div className="lesson-challenge-card"><span className="eyebrow">DESAFIO FINAL · TESTE SUA COMPREENSÃO</span><h3>{content.challenge.prompt}</h3><button className="text-button" onClick={toggleChallengeReveal}>{challengeRevealed ? "Ocultar resposta" : "Conferir resposta e raciocínio"}</button>{challengeRevealed && <div className="lesson-challenge-answer"><strong>Resposta comentada</strong><p>{content.challenge.answer}</p></div>}</div>}
         {content.practice && <div className="lesson-practice"><span className="eyebrow">ATIVIDADE DE FIXAÇÃO</span><h3>{content.practice}</h3><p className="muted">Resolva no caderno ou explique a resposta com suas palavras. Depois, pratique questões do banco.</p></div>}
       </>}
       <div className="lesson-session-footer">
@@ -441,6 +465,8 @@ export default function App() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [lessonSessionBusy, setLessonSessionBusy] = useState(false);
   const notifiedGoalSessionRef = useRef(null);
+  const topicLearningSaveQueueRef = useRef(new Map());
+  const topicLessonStateLatestRef = useRef(new Map());
   const diagnosticStartLock = useRef(false);
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [quizMode, setQuizMode] = useState("diagnostico");
@@ -670,7 +696,7 @@ export default function App() {
         supabase.from("flashcard_reviews").select("id, flashcard_id, confidence, reviewed_at, next_review_at")
           .eq("user_id", currentUser.id).order("reviewed_at", { ascending: true }).limit(500),
         supabase.from("topic_lessons").select("topic_id, title, content, source_basis, version").eq("is_published", true),
-        supabase.from("topic_progress").select("topic_id, status, started_at, completed_at, last_studied_at, updated_at")
+        supabase.from("topic_progress").select("topic_id, status, started_at, completed_at, last_studied_at, updated_at, lesson_state")
           .eq("user_id", currentUser.id),
       ]);
       if (loadGeneration !== dashboardLoadGenerationRef.current) return;
@@ -739,7 +765,7 @@ export default function App() {
         if (restoredSession.kind === "topico") {
           const restoredTopic = (subjectsData || []).flatMap((row) => row.topics || []).find((topic) => topic.id === restoredSession.topicId);
           if (restoredTopic) setSelectedTopic(restoredTopic);
-          setView("study");
+          setView("topic-session");
         } else if (restoredSession.kind === "redacao") {
           setActiveEssayLessonId(restoredSession.essayLessonId);
           setEssayLearningTab("learn");
@@ -842,6 +868,41 @@ export default function App() {
     setNotice("");
   }
 
+  async function saveTopicLearningState(topicId, lessonState) {
+    if (!user) throw new Error("Entre novamente para salvar seu progresso.");
+    topicLessonStateLatestRef.current.set(topicId, lessonState);
+    const previousSave = topicLearningSaveQueueRef.current.get(topicId) || Promise.resolve();
+    const save = previousSave.catch(() => {}).then(async () => {
+      const existing = topicProgressById.get(topicId);
+      const now = new Date().toISOString();
+      const row = {
+        user_id: user.id,
+        topic_id: topicId,
+        status: existing?.status || "em_andamento",
+        started_at: existing?.started_at || now,
+        completed_at: existing?.completed_at || null,
+        last_studied_at: existing?.last_studied_at || null,
+        updated_at: now,
+        lesson_state: topicLessonStateLatestRef.current.get(topicId) || lessonState,
+      };
+      const { data, error } = await supabase.from("topic_progress")
+        .upsert(row, { onConflict: "user_id,topic_id" })
+        .select("topic_id, status, started_at, completed_at, last_studied_at, updated_at, lesson_state")
+        .single();
+      if (error) throw error;
+      setTopicProgressRows((previousRows) => [
+        ...previousRows.filter((item) => item.topic_id !== topicId),
+        data,
+      ]);
+    });
+    topicLearningSaveQueueRef.current.set(topicId, save);
+    try {
+      await save;
+    } finally {
+      if (topicLearningSaveQueueRef.current.get(topicId) === save) topicLearningSaveQueueRef.current.delete(topicId);
+    }
+  }
+
   async function startTopicSession(topic) {
     if (!user || activeSession || lessonSessionBusy) return;
     setLessonSessionBusy(true);
@@ -875,6 +936,7 @@ export default function App() {
         started_at: existing?.started_at || startedAtIso,
         completed_at: existing?.completed_at || null,
         last_studied_at: existing?.last_studied_at || null,
+        lesson_state: topicLessonStateLatestRef.current.get(topic.id) || existing?.lesson_state || {},
         updated_at: startedAtIso,
       }, { onConflict: "user_id,topic_id" });
       if (progressError) {
@@ -895,6 +957,7 @@ export default function App() {
           started_at: existing?.started_at || startedAtIso,
           completed_at: existing?.completed_at || null,
           last_studied_at: existing?.last_studied_at || null,
+          lesson_state: topicLessonStateLatestRef.current.get(topic.id) || existing?.lesson_state || {},
           updated_at: startedAtIso,
         },
       ]);
@@ -910,7 +973,8 @@ export default function App() {
         plannedMinutes: Number(sessionRow.planned_minutes || plannedMinutes),
         goalReachedAt: sessionRow.goal_reached_at || null,
       });
-      setNotice("Estudo iniciado. O cronômetro está vinculado somente a este tópico.");
+      setView("topic-session");
+      setNotice("Estudo iniciado. Você foi direcionado para a página da sessão. O cronômetro está vinculado somente a este tópico.");
     } catch (error) {
       setNotice(error.message || "Não foi possível iniciar este tópico.");
     } finally {
@@ -955,10 +1019,12 @@ export default function App() {
         started_at: existing?.started_at || new Date(currentSession.startedAt).toISOString(),
         completed_at: markCompleted ? finishedAt : (existing?.completed_at || null),
         last_studied_at: finishedAt,
+        lesson_state: topicLessonStateLatestRef.current.get(currentSession.topicId) || existing?.lesson_state || {},
         updated_at: finishedAt,
       }, { onConflict: "user_id,topic_id" });
 
       setActiveSession(null);
+      setView("study");
       if (progressError) {
         setNotice("A sessão foi registrada, mas não foi possível atualizar o progresso: " + progressError.message);
       } else if (historyError) {
@@ -988,6 +1054,7 @@ export default function App() {
       if (error) throw error;
       setActiveSession(null);
       setElapsedSeconds(0);
+      setView("study");
       setNotice("Sessão cancelada. Nenhum tempo foi registrado.");
     } catch (error) {
       setNotice(error.message || "Não foi possível cancelar a sessão.");
@@ -1254,6 +1321,7 @@ export default function App() {
       started_at: existing.started_at || now,
       completed_at: now,
       last_studied_at: existing.last_studied_at || null,
+      lesson_state: topicLessonStateLatestRef.current.get(topic.id) || existing.lesson_state || {},
       updated_at: now,
     }, { onConflict: "user_id,topic_id" });
     if (error) {
@@ -1847,7 +1915,7 @@ export default function App() {
 
       <main className="main-area">
         <header className="topbar">
-          <div><span className="eyebrow">CONCURSO SBMG · 2026</span><div className="topbar-title">{view === "simulation" ? "Simulado completo" : view === "profile" ? "Meu perfil" : NAV_ITEMS.find((item) => item.id === view)?.label || (view === "results" ? (quizResult?.mode === "simulado" ? "Resultado do simulado" : "Resultado do diagnóstico") : "Área do candidato")}</div></div>
+          <div><span className="eyebrow">CONCURSO SBMG · 2026</span><div className="topbar-title">{view === "simulation" ? "Simulado completo" : view === "topic-session" ? "Estudo em andamento" : view === "profile" ? "Meu perfil" : NAV_ITEMS.find((item) => item.id === view)?.label || (view === "results" ? (quizResult?.mode === "simulado" ? "Resultado do simulado" : "Resultado do diagnóstico") : "Área do candidato")}</div></div>
           <div className="topbar-right">
             <span className="top-date">{formatDate(new Date())}</span>
             <button className="theme-toggle" type="button" onClick={() => setTheme((current) => current === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"} title={theme === "dark" ? "Modo claro" : "Modo escuro"}>
@@ -1889,7 +1957,7 @@ export default function App() {
             })()}
             <button className="text-button" onClick={() => {
               if (activeSession.kind === "topico") {
-                setView("study");
+                setView("topic-session");
                 setSelectedTopic(allTopics.find((item) => item.id === activeSession.topicId) || null);
               } else {
                 setView("essay");
@@ -2085,11 +2153,20 @@ export default function App() {
           </section>
         )}
 
-        {view === "study" && (
+        {(view === "study" || view === "topic-session") && (
           <section className={selectedTopic ? "content-section study-session-page" : "content-section"}>
             {selectedTopic ? (
               <>
-                <button className="back-button lesson-back-button" onClick={closeTopicLesson}>← Voltar à lista de aulas</button>
+                {view === "topic-session" ? (
+                  <div className="topic-session-page-heading">
+                    <button className="back-button lesson-back-button" onClick={() => setView("study")}>← Voltar ao resumo do tópico</button>
+                    <span className="eyebrow">SESSÃO DE ESTUDO · EM ANDAMENTO</span>
+                    <h1>{selectedTopic.title}</h1>
+                    <p className="muted">Esta é sua página de estudo. Suas marcações são salvas automaticamente e a sessão continua ativa até você salvar ou concluir.</p>
+                  </div>
+                ) : (
+                  <button className="back-button lesson-back-button" onClick={closeTopicLesson}>← Voltar à lista de aulas</button>
+                )}
                 <TopicLessonPanel
                   key={selectedTopic.id}
                   topic={selectedTopic}
@@ -2099,12 +2176,14 @@ export default function App() {
                   activeSession={activeSession}
                   elapsedSeconds={elapsedSeconds}
                   busy={busy || lessonSessionBusy}
+                  studyMode={view === "topic-session"}
+                  onSaveLearningState={(lessonState) => saveTopicLearningState(selectedTopic.id, lessonState)}
                   onStart={() => startTopicSession(selectedTopic)}
                   onFinish={(complete) => finishTopicSession(complete)}
                   onMarkComplete={() => markTopicCompleted(selectedTopic)}
                   onCancel={cancelTopicSession}
                   onAskTutor={() => { setTutorTopicId(selectedTopic.id); setView("tutor"); }}
-                  onClose={closeTopicLesson}
+                  onClose={view === "topic-session" ? () => setView("study") : closeTopicLesson}
                 />
               </>
             ) : (
