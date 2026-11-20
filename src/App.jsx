@@ -224,12 +224,16 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
   const completed = progress?.status === "concluido";
   const inProgress = progress?.status === "em_andamento";
 
-  function confirmAction() {
+  async function confirmAction() {
     const mode = completionMode;
+    if (mode === "start") {
+      await onStart();
+      setCompletionMode(null);
+      return;
+    }
     setCompletionMode(null);
-    if (mode === "start") onStart();
-    if (mode === "session") onFinish(true);
-    if (mode === "topic") onMarkComplete();
+    if (mode === "session") await onFinish(true);
+    if (mode === "topic") await onMarkComplete();
   }
 
   return (
@@ -286,7 +290,7 @@ function TopicLessonPanel({ topic, lesson, progress, plannedMinutes, activeSessi
         ) : (
           <div className="lesson-timer-controls">
             <button className="button button-primary" onClick={() => setCompletionMode("start")} disabled={busy || anotherSessionActive || !lesson}>
-              {anotherSessionActive ? "Finalize a sessão atual" : completed ? "Iniciar revisão cronometrada" : inProgress ? "Retomar estudo" : "Iniciar estudo"}
+              {anotherSessionActive ? "Finalize a sessão atual" : hasActiveSession ? "Continuar sessão ativa" : completed ? "Iniciar revisão cronometrada" : inProgress ? "Iniciar nova sessão de estudo" : "Iniciar estudo"}
             </button>
             {inProgress && !anotherSessionActive && (
               <button className="button button-secondary" onClick={() => setCompletionMode("topic")} disabled={busy}>Marcar tópico como concluído</button>
@@ -974,7 +978,8 @@ export default function App() {
         goalReachedAt: sessionRow.goal_reached_at || null,
       });
       setView("topic-session");
-      setNotice("Estudo iniciado. Você foi direcionado para a página da sessão. O cronômetro está vinculado somente a este tópico.");
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch { /* scroll unavailable */ }
+      setNotice("Sessão iniciada. Você está na página dedicada do estudo, com cronômetro ativo.");
     } catch (error) {
       setNotice(error.message || "Não foi possível iniciar este tópico.");
     } finally {
@@ -2164,9 +2169,15 @@ export default function App() {
                 {view === "topic-session" ? (
                   <div className="topic-session-page-heading">
                     <button className="back-button lesson-back-button" onClick={() => setView("study")}>← Voltar ao resumo do tópico</button>
-                    <span className="eyebrow">SESSÃO DE ESTUDO · EM ANDAMENTO</span>
+                    <span className="eyebrow">PÁGINA DE ESTUDO · SESSÃO ATIVA</span>
                     <h1>{selectedTopic.title}</h1>
-                    <p className="muted">Esta é sua página de estudo. Suas marcações são salvas automaticamente e a sessão continua ativa até você salvar ou concluir.</p>
+                    <div className="topic-session-status-strip">
+                      <span className="session-live-dot" />
+                      <strong>Estudo em andamento</strong>
+                      <span>·</span>
+                      <span>Tempo contabilizado nesta sessão</span>
+                    </div>
+                    <p className="muted">Agora você está na página dedicada de estudo. O cronômetro e as marcações ficam vinculados a este tópico e são salvos automaticamente.</p>
                   </div>
                 ) : (
                   <button className="back-button lesson-back-button" onClick={closeTopicLesson}>← Voltar à lista de aulas</button>
