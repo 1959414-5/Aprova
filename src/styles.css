@@ -2834,3 +2834,20 @@ textarea { width:100%; }
     gap: 10px;
   }
 }
+
+
+/* Histórico de simulados e revisão detalhada */
+.simulation-history-panel { margin: 22px 0; }
+.simulation-history-list { display: grid; gap: 12px; }
+.simulation-history-item { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: 16px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); }
+.simulation-history-main { display: grid; gap: 5px; min-width: 0; }
+.simulation-history-main span { color: var(--muted); font-size: 12px; }
+.simulation-history-score { font-size: 22px; font-weight: 850; white-space: nowrap; }
+.simulation-history-score small { font-size: 12px; color: var(--muted); }
+.answer-review-options { display: grid; gap: 8px; margin: 14px 0; }
+.answer-review-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.answer-review-option > b { flex: 0 0 24px; }
+.answer-review-option > small { margin-left: auto; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.answer-review-correct-option { border-color: var(--mint-deep); background: color-mix(in srgb, var(--mint-deep) 9%, var(--surface)); }
+.answer-review-selected-wrong { border-color: #d95757; background: color-mix(in srgb, #d95757 8%, var(--surface)); }
+@media (max-width: 700px) { .simulation-history-item { grid-template-columns: minmax(0,1fr) auto; } .simulation-history-item > button { grid-column: 1 / -1; width: 100%; } .answer-review-option { flex-wrap: wrap; } .answer-review-option > small { margin-left: 34px; } }
