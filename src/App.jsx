@@ -860,6 +860,10 @@ export default function App() {
   }, [activeSession?.id, activeSession?.startedAt, activeSession?.plannedMinutes, activeSession?.goalReachedAt, goalNotificationPermission]);
 
   useEffect(() => {
+    if (view === "simulations" && user && exam) loadSimulationHistory();
+  }, [view, user?.id, exam?.id]);
+
+  useEffect(() => {
     if (!supabase) {
       setBooting(false);
       return undefined;
