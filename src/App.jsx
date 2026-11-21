@@ -3102,13 +3102,13 @@ export default function App() {
             {quizResult.subjects?.length > 0 && (
               <div className="panel simulation-distribution">
                 <div className="panel-heading"><div><span className="eyebrow">RESULTADO POR DISCIPLINA</span><h2>Onde concentrar os estudos</h2></div></div>
-                {quizResult.subjects.map((item) => (
+                {quizResult.subjects.map((item) => { const rawPercent = Number(item.percentage); const calculatedPercent = Number(item.max_points) > 0 ? (Number(item.raw_points || 0) / Number(item.max_points)) * 100 : Number(item.answered) > 0 ? (Number(item.correct || 0) / Number(item.answered)) * 100 : 0; const percentage = Number.isFinite(rawPercent) ? Math.max(0, Math.min(100, rawPercent)) : Math.max(0, Math.min(100, calculatedPercent)); return (
                   <div className="simulation-subject-row" key={item.slug}>
                     <div><strong>{item.name}</strong><small>{item.correct}/{item.answered} acertos · {item.raw_points}/{item.max_points} pontos</small></div>
-                    <div className="simulation-bar"><span style={{ width: item.percentage + "%" }} /></div>
-                    <b>{Number(item.percentage).toFixed(0)}%</b>
+                    <div className="simulation-bar"><span style={{ width: percentage + "%" }} /></div>
+                    <b>{percentage.toFixed(0)}%</b>
                   </div>
-                ))}
+                ); })}
               </div>
             )}
             {quizResult.review?.length > 0 && (
