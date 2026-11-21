@@ -748,6 +748,8 @@ export default function App() {
   const [quizStartedAt, setQuizStartedAt] = useState(null);
   const [questionStartedAt, setQuestionStartedAt] = useState(null);
   const [quizResult, setQuizResult] = useState(null);
+  const [simulationHistory, setSimulationHistory] = useState([]);
+  const [simulationHistoryLoading, setSimulationHistoryLoading] = useState(false);
   const [pendingDiagnosticResume, setPendingDiagnosticResume] = useState(null);
   const [completedDiagnosticResult, setCompletedDiagnosticResult] = useState(null);
   const user = session?.user ?? null;
@@ -1913,6 +1915,53 @@ export default function App() {
     setView(destination);
   }
 
+  async function loadSimulationHistory() {
+    if (!user || !exam) return;
+    setSimulationHistoryLoading(true);
+    try {
+      const { data, error } = await supabase.from("assessment_runs")
+        .select("id, title, started_at, finished_at, duration_seconds, score, correct_count, question_count, metadata")
+        .eq("user_id", user.id).eq("exam_id", exam.id).eq("run_type", SIMULATION_RUN_TYPE)
+        .not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(20);
+      if (error) throw error;
+      setSimulationHistory(data || []);
+    } catch (err) {
+      setNotice(err.message || "Não foi possível carregar seu histórico de simulados.");
+    } finally {
+      setSimulationHistoryLoading(false);
+    }
+  }
+
+  async function openSavedSimulation(run) {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const { data: attemptsData, error: attemptsError } = await supabase.from("question_attempts")
+        .select("question_id, selected_option, is_correct, time_spent_seconds, answered_at")
+        .eq("user_id", user.id).eq("assessment_run_id", run.id).order("answered_at", { ascending: true });
+      if (attemptsError) throw attemptsError;
+      const questionIds = (attemptsData || []).map((a) => a.question_id);
+      const { data: questionsData, error: questionsError } = await supabase.from("questions")
+        .select("id, statement, options, correct_option, explanation, points, topic_id")
+        .in("id", questionIds);
+      if (questionsError) throw questionsError;
+      const questionById = new Map((questionsData || []).map((q) => [q.id, q]));
+      const review = (attemptsData || []).map((attempt) => {
+        const q = questionById.get(attempt.question_id);
+        if (!q) return null;
+        const correct = attempt.selected_option === q.correct_option;
+        return { question_id: q.id, statement: q.statement, options: q.options, selected_option: attempt.selected_option,
+          correct_option: q.correct_option, correct, explanation: q.explanation, points: Number(q.points || 0), topic_id: q.topic_id };
+      }).filter(Boolean);
+      setQuizResult({ mode: "simulado", score: run.score ?? 0, correct: run.correct_count ?? review.filter(x=>x.correct).length,
+        total: run.question_count ?? review.length, minutes: Math.max(1, Math.round((run.duration_seconds || 0)/60)),
+        subjects: run.metadata?.subject_breakdown || [], review, saved: true, runId: run.id });
+      setView("results");
+    } catch (err) {
+      setNotice(err.message || "Não foi possível abrir a revisão deste simulado.");
+    } finally { setBusy(false); }
+  }
+
   async function startSimulation() {
     if (!exam || !user || diagnosticStartLock.current) return;
     diagnosticStartLock.current = true;
@@ -2988,6 +3037,10 @@ export default function App() {
               </div>
               <div className="simulation-total"><strong>70</strong><span>questões</span><small>100 pontos</small></div>
             </div>
+            <div className="panel simulation-history-panel">
+              <div className="panel-heading"><div><span className="eyebrow">SEUS RESULTADOS SALVOS</span><h2>Histórico de simulados</h2></div><button className="button button-secondary" onClick={loadSimulationHistory} disabled={simulationHistoryLoading}>{simulationHistoryLoading ? "Carregando..." : "Atualizar"}</button></div>
+              {simulationHistoryLoading ? <p className="muted">Carregando simulados anteriores...</p> : simulationHistory.length ? <div className="simulation-history-list">{simulationHistory.map((run) => <article className="simulation-history-item" key={run.id}><div className="simulation-history-main"><strong>{run.title || "Simulado completo"}</strong><span>{new Date(run.finished_at).toLocaleString("pt-BR")} · {run.correct_count || 0}/{run.question_count || 0} acertos · {Math.max(1,Math.round((run.duration_seconds||0)/60))} min</span></div><div className="simulation-history-score">{Number(run.score || 0).toFixed(1).replace(".",",")}<small>/100</small></div><button className="button button-secondary" onClick={() => openSavedSimulation(run)} disabled={busy}>Ver respostas e comentários →</button></article>)}</div> : <p className="muted">Seus simulados finalizados aparecerão aqui, com nota, alternativas marcadas e gabarito comentado.</p>}
+            </div>
             <div className="panel simulation-distribution">
               <div className="panel-heading"><div><span className="eyebrow">DISTRIBUIÇÃO OFICIAL</span><h2>Estrutura da prova objetiva</h2></div><span className="muted small-copy">Tempo total do concurso: 4h30 para objetiva e redação</span></div>
               {subjectRows.map((row) => (
@@ -3062,8 +3115,9 @@ export default function App() {
                     <article key={item.question_id} className="answer-review-item">
                       <div className="answer-review-top"><strong>Questão {index + 1}</strong><span className={item.correct ? "review-correct" : "review-incorrect"}>{item.correct ? "Acertou" : "Errou"} · {item.points} pts</span></div>
                       <h3>{item.statement}</h3>
-                      <p><strong>Sua resposta:</strong> {item.selected_option || "Em branco"} · <strong>Gabarito:</strong> {item.correct_option}</p>
-                      <p className="muted">{item.explanation}</p>
+                      <div className="answer-review-options">{(item.options || []).map(option => <div key={option.id} className={"answer-review-option " + (option.id === item.correct_option ? "answer-review-correct-option" : "") + (option.id === item.selected_option && !item.correct ? " answer-review-selected-wrong" : "")}><b>{option.id}</b><span>{option.text}</span>{option.id === item.selected_option && <small>Sua resposta</small>}{option.id === item.correct_option && <small>Gabarito</small>}</div>)}</div>
+                      <p><strong>Você marcou:</strong> {item.selected_option || "Em branco"} · <strong>Resposta correta:</strong> {item.correct_option}</p>
+                      <p className="muted">{item.explanation || "Esta questão ainda não possui comentário cadastrado."}</p>
                     </article>
                   ))}
                 </div>
