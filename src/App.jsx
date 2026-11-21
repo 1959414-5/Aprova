@@ -1959,7 +1959,7 @@ export default function App() {
       }).filter(Boolean);
       setQuizResult({ mode: "simulado", score: run.score ?? 0, correct: run.correct_count ?? review.filter(x=>x.correct).length,
         total: run.question_count ?? review.length, minutes: Math.max(1, Math.round((run.duration_seconds || 0)/60)),
-        subjects: run.metadata?.subject_breakdown || [], review, saved: true, runId: run.id });
+        subjects: (run.metadata?.subject_breakdown || []).map((subject) => { const maxPoints = Number(subject.max_points || 0); const rawPoints = Number(subject.raw_points || 0); const answered = Number(subject.answered || subject.question_count || 0); const correct = Number(subject.correct || subject.correct_count || 0); const percentage = maxPoints > 0 ? (rawPoints / maxPoints) * 100 : answered > 0 ? (correct / answered) * 100 : 0; return { ...subject, percentage: Number.isFinite(percentage) ? Math.max(0, Math.min(100, percentage)) : 0 }; }), review, saved: true, runId: run.id });
       setView("results");
     } catch (err) {
       setNotice(err.message || "Não foi possível abrir a revisão deste simulado.");
