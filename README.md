@@ -1,72 +1,152 @@
-# Aprova — SBMG Aprova
+<p align="center">
+  <img src="https://img.shields.io/badge/APROVA-PLATAFORMA%20DE%20ESTUDOS-f15aa7?style=for-the-badge&labelColor=150f18" alt="Aprova — Plataforma de estudos" />
+</p>
 
-Aplicação de preparação para o Concurso para Emprego Público nº 001/2026 da Terminais Aéreos de Maringá (SBMG), cargo **Auxiliar Administrativo/Financeiro**.
+<h1 align="center">Aprova · Plataforma de estudos</h1>
 
-## Publicação
-Site: **https://1959414-5.github.io/Aprova/**
+<p align="center">
+  <strong>Uma plataforma educacional para organizar a preparação, acompanhar a evolução e praticar com feedback estruturado.</strong>
+</p>
 
-Deploy automático pelo GitHub Actions a cada push em `main`. Configuração: [docs/GITHUB-PAGES.md](docs/GITHUB-PAGES.md).
+<p align="center">
+  <a href="https://1959414-5.github.io/Aprova/"><img src="https://img.shields.io/badge/ACESSAR_DEMONSTRAÇÃO-f15aa7?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Demonstração" /></a>
+  <a href="https://1959414-5.github.io/meu-portfolio/projeto-aprova.html"><img src="https://img.shields.io/badge/ESTUDO_DE_CASO-35263d?style=for-the-badge&logo=readthedocs&logoColor=white" alt="Estudo de caso" /></a>
+</p>
 
-## Stack
-- React + Vite
-- Supabase Auth e Postgres
-- Supabase Edge Functions para correção, tutor e redação
-- OpenAI Responses API, com chave armazenada somente nos Secrets do Supabase
+<p align="center">
+  <img src="images/visao-geral.webp" alt="Visão geral da plataforma Aprova" width="92%" />
+</p>
+
+---
+
+## Visão geral
+
+O **Aprova** é uma aplicação web voltada à preparação para concursos e organização de estudos. A plataforma reúne conteúdo estruturado, acompanhamento individual de progresso, avaliações e recursos de apoio ao aprendizado em um único ambiente.
+
+O projeto começou com um recorte de preparação para um concurso específico e evoluiu para uma experiência de estudo mais abrangente, com recursos que podem ser organizados conforme o objetivo do candidato.
+
+## Funcionalidades
+
+| Área | Recursos |
+|---|---|
+| **Trilhas e aulas** | Organização por disciplinas e tópicos, aulas estruturadas, explicações, exemplos e exercícios. |
+| **Plano de estudos** | Plano flexível, metas de duração e acompanhamento das sessões de estudo. |
+| **Diagnóstico** | Avaliação inicial para identificar pontos de domínio e oportunidades de revisão. |
+| **Simulados** | Questões, registro de alternativas, cálculo de desempenho e revisão do gabarito comentado após finalizar. |
+| **Flashcards e revisão** | Apoio à memorização e retomada programada dos conteúdos. |
+| **Redação** | Aulas, prática, temas, rascunhos e feedback orientado por critérios. |
+| **Professor com IA** | Apoio contextualizado ao conteúdo estudado e feedback assistido por IA, com processamento no servidor. |
+| **Progresso individual** | Registro de tópicos concluídos, sessões e evolução vinculados ao usuário. |
+
+## Tecnologias
+
+<p>
+  <img src="https://img.shields.io/badge/React-35263d?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
+  <img src="https://img.shields.io/badge/Vite-35263d?style=for-the-badge&logo=vite&logoColor=646CFF" alt="Vite" />
+  <img src="https://img.shields.io/badge/JavaScript-35263d?style=for-the-badge&logo=javascript&logoColor=F7DF1E" alt="JavaScript" />
+  <img src="https://img.shields.io/badge/Supabase-35263d?style=for-the-badge&logo=supabase&logoColor=3ECF8E" alt="Supabase" />
+  <img src="https://img.shields.io/badge/PostgreSQL-35263d?style=for-the-badge&logo=postgresql&logoColor=4169E1" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/Playwright-35263d?style=for-the-badge&logo=playwright&logoColor=45ba4b" alt="Playwright" />
+  <img src="https://img.shields.io/badge/OpenAI_API-35263d?style=for-the-badge&logo=openai&logoColor=white" alt="OpenAI API" />
+</p>
+
+- **React:** interface componentizada.
+- **Vite:** ambiente de desenvolvimento e build.
+- **Supabase Auth:** autenticação de usuários.
+- **PostgreSQL:** persistência de conteúdos, avaliações e progresso.
+- **Supabase Edge Functions:** operações de servidor e integrações com IA.
+- **Row Level Security (RLS):** isolamento de dados por usuário.
+- **Playwright:** testes ponta a ponta.
+
+## Arquitetura e segurança
+
+A aplicação separa a interface das operações que precisam ocorrer no servidor. As operações sensíveis, como correção, tutor e feedback de redação com IA, são realizadas por Edge Functions.
+
+Princípios adotados:
+
+- Dados individuais protegidos por políticas de RLS.
+- Chaves privadas e credenciais mantidas em secrets do ambiente de servidor.
+- A chave pública do Supabase é utilizada no frontend com as políticas de acesso habilitadas.
+- Respostas, progresso e sessões são associados ao usuário autenticado.
+- O gabarito de avaliações é liberado conforme o fluxo de finalização definido pela aplicação.
+
+**Não publique service-role keys, tokens, chaves de provedores ou credenciais em arquivos versionados.**
 
 ## Executar localmente
-1. Instale Node.js 22.
-2. Copie `.env.example` para `.env.local`.
-3. Preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`.
-4. Execute `npm install` e `npm run dev`.
 
-## Conteúdo e preparação
-- 5 disciplinas e 45 tópicos correspondentes ao Anexo III.
-- 45 aulas autorais com objetivos, explicações, exemplos resolvidos, resumos, erros comuns e exercícios de fixação: `content/lessons.json`.
-- Progresso do tópico separado do tempo efetivamente estudado; sessões cronometradas só são salvas quando o candidato finaliza.
-- Diagnóstico curto com 22 questões, distribuídas proporcionalmente.
-- Simulado completo com 70 questões e os pesos exatos da prova objetiva: 10/10/10/10/30 questões e 100 pontos.
-- Banco inicial de 70 questões autorais, todas identificadas como geradas para treino e pendentes de revisão humana.
-- No simulado, o gabarito fica oculto durante a execução; a nota ponderada e o gabarito comentado são liberados após finalizar.
-- Curso de Redação guiado por seis aulas autorais: fundamentos do texto dissertativo-argumentativo, estrutura, tema e tese, argumentação, coesão/linguagem e conclusão/revisão.
-- Cada aula inclui explicação, exemplos comentados e exercício com resposta explicada; a plataforma salva as respostas e aulas concluídas por usuário em `essay_learning_progress`.
-- Área de prática com exercícios, análise de redação-modelo autoral, explicação da rubrica do edital e Laboratório de Redação com temas, rascunhos, contador de 20–30 linhas e correção formativa por quatro critérios.
-- Revisões e flashcards: um cartão inicial por tópico, com intervalos de 1, 2, 4, 7 e 15 dias.
+Requisitos: Node.js 22 ou versão compatível com as dependências do projeto.
 
-## Supabase
-Projeto: `ehsrjjflwrmmegfvupch`. O schema original tem RLS habilitado. Tabelas e estruturas adicionais:
-- `topic_lessons`: leitura autenticada de aulas publicadas.
-- `topic_progress`: progresso isolado por usuário.
-- `lesson_study_sessions`: sessões independentes por tópico/aula de redação, com duração exata em segundos, meta do Plano Flexível e registro de meta atingida, protegidas por RLS.
-- `ai_tutor_usage`: controle privado de consumo de IA, separado por tipo de solicitação.
+1. Clone o repositório:
 
-Edge Functions:
-- `answer-question`: registra resposta; correção imediata somente no diagnóstico/prática.
-- `finish-assessment`: calcula a nota e libera gabarito somente após a finalização.
-- `study-tutor`: tutor contextualizado pelo tópico selecionado.
-- `essay-feedback`: correção formativa de redação com rubrica estruturada.
+```bash
+git clone https://github.com/1959414-5/Aprova.git
+cd Aprova
+```
 
-SQLs versionados em `supabase/sql/`.
+2. Instale as dependências:
 
-## Ativar e pagar o Professor IA
-A chave `OPENAI_API_KEY` deve existir em Supabase → Edge Functions → Secrets. A chave nunca deve ficar em `.env`, variáveis `VITE_*`, GitHub ou navegador.
+```bash
+npm install
+```
 
-A API da OpenAI é faturada separadamente da assinatura ChatGPT. Novas contas usam faturamento pré-pago; a compra inicial mínima é de US$ 5. Durante a configuração, confira e desative a recarga automática se preferir comprar créditos manualmente. Consulte [a orientação de faturamento pré-pago](https://help.openai.com/pt-br/articles/8264644-setting-up-and-managing-prepaid-api-billing).
+3. Crie um arquivo `.env.local` baseado em `.env.example` e configure as variáveis públicas necessárias do Supabase:
 
-O modelo padrão no servidor é `gpt-6.2-sol`. O limite é de até 35 perguntas/dia por conta no tutor e 35 solicitações/dia por conta na correção de redações. As cotas são separadas; os limites internos não representam o saldo da conta OpenAI.
+```env
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
 
-Mais detalhes: [docs/PROFESSOR-IA.md](docs/PROFESSOR-IA.md).
+4. Inicie o ambiente:
 
-## Plano Flexível
-O candidato escolhe blocos de 15, 40 ou 90 minutos. A escolha fica salva no navegador e é copiada para cada sessão. O cronômetro faz contagem regressiva, registra o marco de meta atingida e continua em tempo excedido até o usuário salvar ou cancelar. O aviso interno sempre funciona; notificações do navegador são opcionais e dependem de permissão concedida pelo usuário.
+```bash
+npm run dev
+```
 
-## Diagnóstico inicial
-O diagnóstico tem 22 questões (3 de cada disciplina geral e 10 específicas). A sequência selecionada fica em `assessment_runs.metadata.question_ids`; ao recarregar, `diagnostic-session` recupera as respostas e a próxima questão pendente. O gabarito e as explicações de correção permanecem no servidor. Uma única tentativa diagnóstica ativa por usuário/concurso é garantida por índice único parcial e RLS.
+5. Gere a versão de produção:
 
-## Segurança
-O repositório é público. Não inclua service-role/secret key, chaves de provedores de IA, credenciais ou gabaritos nas fontes versionadas. A publishable key é apropriada para o frontend com RLS habilitado.
+```bash
+npm run build
+npm run preview
+```
 
-## Fontes
-- Edital nº 001/2026 — Anexos II e III.
-- Caderno histórico SBMG 2019 — Auxiliar Administrativo: [prova](https://arquivos.qconcursos.com/prova/arquivo_prova/80482/fauel-2019-sbmg-pr-auxiliar-administrativo-prova.pdf) e [gabarito](https://arquivos.qconcursos.com/prova/arquivo_gabarito/80482/fauel-2019-sbmg-pr-auxiliar-administrativo-gabarito.pdf).
+## Testes
 
-**Importante:** as 70 questões atuais e os temas de redação são autorais. Não são itens oficiais do caderno de 2019 nem da prova de 2026; precisam de revisão humana independente.
+O projeto contém configuração para testes ponta a ponta com Playwright.
+
+```bash
+npm run test:e2e
+```
+
+A execução dos testes pode exigir a instalação dos navegadores do Playwright e a configuração do ambiente correspondente.
+
+## Estrutura do repositório
+
+| Diretório/arquivo | Responsabilidade |
+|---|---|
+| `src/` | Interface e lógica da aplicação. |
+| `public/` | Recursos estáticos. |
+| `content/` | Conteúdos estruturados das aulas e tópicos, quando versionados. |
+| `supabase/` | Estruturas SQL, migrations e Edge Functions. |
+| `tests/` | Testes automatizados. |
+| `docs/` | Documentação complementar e configuração de publicação. |
+| `.env.example` | Modelo de variáveis de ambiente sem credenciais. |
+
+## Demonstração e documentação
+
+- [Aplicação publicada](https://1959414-5.github.io/Aprova/)
+- [Estudo de caso no portfólio](https://1959414-5.github.io/meu-portfolio/projeto-aprova.html)
+- [Configuração do GitHub Pages](docs/GITHUB-PAGES.md)
+- [Professor IA](docs/PROFESSOR-IA.md)
+
+## Autoria
+
+**Bárbara Cabral Paschoalin**  
+Desenvolvimento de Software · Dados · Automação
+
+- [Portfólio](https://1959414-5.github.io/meu-portfolio/)
+- [GitHub](https://github.com/1959414-5)
+- [LinkedIn](https://www.linkedin.com/in/b%C3%A1rbara-paschoalin-980b52185/)
+
+---
+
+<p align="center"><sub>Projeto de portfólio em evolução contínua.</sub></p>
